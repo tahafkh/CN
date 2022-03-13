@@ -7,13 +7,12 @@
 #include <string>
 
 
-class UserNotLoggin : public std::exception {
+class UserNotLoggedin : public std::exception {
     private:
     	std::string message;
 
     public:
-    	UserNotLoggin();
-        ~UserNotLoggin();
+    	UserNotLoggedin();
     	const char *what() const throw();
 };
 
@@ -23,7 +22,6 @@ class WritingError : public std::exception {
 
     public:
     	WritingError();
-        ~WritingError();
     	const char *what() const throw();
 };
 
@@ -33,7 +31,6 @@ class DefaultError : public std::exception {
 
     public:
     	DefaultError();
-        ~DefaultError();
     	const char *what() const throw();
 };
 
@@ -43,7 +40,6 @@ class FullCapacity : public std::exception {
 
     public:
     	FullCapacity();
-        ~FullCapacity();
     	const char *what() const throw();
 };
 
@@ -53,7 +49,6 @@ class UserNotFound : public std::exception {
 
     public:
     	UserNotFound();
-        ~UserNotFound();
     	const char *what() const throw();
 };
 
@@ -63,7 +58,6 @@ class BadSequence : public std::exception {
 
     public:
     	BadSequence();
-        ~BadSequence();
     	const char *what() const throw();
 };
 
@@ -73,7 +67,6 @@ class IllegalAccess : public std::exception {
 
     public:
     	IllegalAccess();
-        ~IllegalAccess();
     	const char *what() const throw();
 };
 
@@ -83,7 +76,6 @@ class SocketCreationFailed : public std::exception {
 
     public:
     	SocketCreationFailed();
-        ~SocketCreationFailed();
     	const char *what() const throw();
 };
 
@@ -93,7 +85,6 @@ class AddressFailed : public std::exception {
 
     public:
     	AddressFailed();
-        ~AddressFailed();
     	const char *what() const throw();
 };
 
@@ -103,7 +94,6 @@ class ConnectionFailed : public std::exception {
 
     public:
     	ConnectionFailed();
-        ~ConnectionFailed();
     	const char *what() const throw();
 };
 
@@ -113,7 +103,6 @@ class SetSockOptFailed : public std::exception {
 
     public:
     	SetSockOptFailed();
-        ~SetSockOptFailed();
     	const char *what() const throw();
 };
 
@@ -123,7 +112,6 @@ class BindFailed : public std::exception {
 
     public:
     	BindFailed();
-        ~BindFailed();
     	const char *what() const throw();
 };
 
@@ -133,7 +121,6 @@ class ListenFailed : public std::exception {
 
     public:
     	ListenFailed();
-        ~ListenFailed();
     	const char *what() const throw();
 };
 
@@ -143,7 +130,6 @@ class AcceptFailed : public std::exception {
 
     public:
     	AcceptFailed();
-        ~AcceptFailed();
     	const char *what() const throw();
 };
 
@@ -153,7 +139,6 @@ class SendDataFailed : public std::exception {
 
     public:
     	SendDataFailed();
-        ~SendDataFailed();
     	const char *what() const throw();
 };
 
@@ -163,7 +148,6 @@ class ReceiveDataFailed : public std::exception {
 
     public:
     	ReceiveDataFailed();
-        ~ReceiveDataFailed();
     	const char *what() const throw();
 };
 

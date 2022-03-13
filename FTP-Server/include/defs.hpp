@@ -1,6 +1,9 @@
 #ifndef __DEFS_HPP__
 #define __DEFS_HPP__
 
+#define MAX_BUFFER_SIZE 1024
+
+// IP constants
 #define IP_PROTOCOL 0 
 #define IP_ADDRESS "127.0.0.1"
 
@@ -21,7 +24,7 @@
 #define USER_NOT_FOUND "430: Invalid username or password"
 #define ILLEGAL_ACCESS "550: File unavailable."
 
-
+// Failure errors
 #define SOCKET_CREATION_FAILED "Socket creation failed."
 #define ADDRESS_FAILED "Invalid address."
 #define CONNECTION_FAILED "Connection failed."
