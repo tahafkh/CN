@@ -16,6 +16,7 @@ private:
 public:
     User(std::string _username, std::string _password, bool _admin_status, int _size);
     ~User();
+    std::string get_username();
     bool is_admin();
     void login(std::string password);
     void logout();

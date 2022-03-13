@@ -2,6 +2,11 @@
 #define __DEFS_HPP__
 
 #define MAX_BUFFER_SIZE 1024
+#define CONFIG_FILE "config.json"
+
+// Port definitions
+#define COMMAND_PORT "commandChannelPort"
+#define DATA_PORT "dataChannelPort"
 
 // IP constants
 #define IP_PROTOCOL 0 

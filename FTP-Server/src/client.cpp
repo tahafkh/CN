@@ -19,11 +19,11 @@ Client::~Client() {
 }
 
 void Client::read_ports() {
-	std::ifstream json_file = std::ifstream("config.json");
+	std::ifstream json_file = std::ifstream(CONFIG_FILE);
 	json json_data;
     json_file >> json_data;
-	command_port = json_data["commandChannelPort"];
-    data_port = json_data["dataChannelPort"];
+	command_port = json_data[COMMAND_PORT];
+    data_port = json_data[DATA_PORT];
 }
 
 void Client::connect_to_server() {

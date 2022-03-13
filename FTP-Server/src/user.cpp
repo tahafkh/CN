@@ -7,10 +7,14 @@ User::User(std::string _username, std::string _password, bool _admin_status, int
     this->admin_status = _admin_status;
     this->authenticated = false;
     this->curr_dir = getenv("PWD");
-    this->size_limit = _size * 1024;
+    this->size_limit = _size * MAX_BUFFER_SIZE;
 }
 
 User::~User() {}
+
+std::string User::get_username() {
+    return this->username;
+}
 
 bool User::is_admin() {
     return admin_status;
