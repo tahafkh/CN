@@ -2,6 +2,8 @@
 
 using json = nlohmann::json;
 
+inline const std::string directory = "Downloads"; 
+
 Client::Client() {
 	read_ports();
 
@@ -30,8 +32,9 @@ void Client::connect_to_server() {
     command_addr.sin_family = AF_INET; 
 	command_addr.sin_port = htons(command_port);
 
-    if ((command_socket = socket(AF_INET, SOCK_STREAM, IP_PROTOCOL)) < 0)
+    if ((command_socket = socket(AF_INET, SOCK_STREAM, IP_PROTOCOL)) < 0) {
         throw SocketCreationFailed();
+	}
 	
 	if (inet_pton(AF_INET, IP_ADDRESS, &command_addr.sin_addr) <= 0)
         throw AddressFailed();
@@ -62,7 +65,6 @@ std::string Client::receive_response_from_server(int sock) {
 
 void Client::receive_file_from_server(std::string response) {
 	char buffer[MAX_BUFFER_SIZE] = {0};
-    inline const std::string directory = "Downloads"; 
 
 	mkdir(directory.c_str(), 0777);
 	

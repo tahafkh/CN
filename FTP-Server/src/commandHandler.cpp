@@ -1,7 +1,7 @@
 #include "../include/commandHandler.hpp"
 
-CommandHandler::CommandHandler(DataBase* _data_base, Logger* _logger):
-	database(_data_base), logger(_logger) {
+CommandHandler::CommandHandler(DataBase* _database, Logger* _logger):
+	database(_database), logger(_logger) {
 	
 	int opt = 1;
 
@@ -67,16 +67,14 @@ std::string CommandHandler::build_path(std::string input_path) {
     }
     else if (input_path[0] == '.') {
         if (input_path[1] == '.')
-            return curr_cwd.substr(0, curr_cwd.find_last_of('/')-1) + input_path.substr(1);
+            return curr_cwd.substr(0, curr_cwd.find_last_of('/')) + input_path.substr(2);
         else if (input_path[1] == '/')
             return curr_cwd + input_path.substr(1);
     }
-    else
-        return curr_cwd + '/' + input_path;
-    
+	return curr_cwd + '/' + input_path;
 }
 
-void CommandHandler::mkd_command(int client_fd) {
+std::string CommandHandler::mkd_command(int client_fd) {
 	if (user == nullptr || !user->is_logged_in())
 		throw UserNotLoggedin();
 	if (input_words.size() < 2)
@@ -84,14 +82,14 @@ void CommandHandler::mkd_command(int client_fd) {
 
 	std::string path = build_path(input_words[1]);
 	mkdir(path.c_str(), 0777);
+
+	return path;
 }
 
-void CommandHandler::dele_command(User* user) {
+std::string CommandHandler::dele_command(User* user) {
 	if (user == nullptr || !user->is_logged_in())
 		throw UserNotLoggedin();
 	if (input_words.size() < 3)
-		throw WritingError();
-	if (input_words[2].find('/') != std::string::npos)
 		throw WritingError();
 	
 	struct stat sb;
@@ -114,6 +112,8 @@ void CommandHandler::dele_command(User* user) {
 	} else {
 		throw WritingError();
 	}
+
+	return path;
 }
 
 void CommandHandler::ls_command(int client_fd) {
@@ -156,7 +156,7 @@ void CommandHandler::cwd_command(User* user) {
 		user->set_cwd(getenv("PWD"));
 	} else {
 		struct stat sb;
-		std::string path = user->get_cwd() + "/" + input_words[1];
+		std::string path = build_path(input_words[1]);
 		std::cout << path << std::endl;
 		if (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
 			user->set_cwd(path);
@@ -180,7 +180,8 @@ void CommandHandler::rename_command(User* user) {
 	std::string new_name = user->get_cwd() + "/" + input_words[2];
 	if (std::rename(file_name.c_str(), new_name.c_str()) < 0)
 		throw WritingError();
-	logger->save_log("User with username: '" + user->get_username() + "' rename file with name: '" + input_words[1] +  "' to new name: '" + input_words[2] + "' successfully.");
+	logger->save_log("User with username: '" + user->get_username() + "' rename file with name: '" + 
+								input_words[1] +  "' to new name: '" + input_words[2] + "' successfully.");
 }
 
 void CommandHandler::retr_command(int client_fd) {
@@ -194,7 +195,7 @@ void CommandHandler::retr_command(int client_fd) {
 		throw WritingError();
 	
 	struct stat sb;
-	std::string path = user->get_cwd() + "/" + input_words[1];
+	std::string path = build_path(input_words[1]);
 	if (stat(path.c_str(), &sb) != 0 || !S_ISREG(sb.st_mode))
 		throw WritingError();
 	if (!user->can_download(sb.st_size))
@@ -215,13 +216,14 @@ void CommandHandler::retr_command(int client_fd) {
 	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
 		throw SendDataFailed();
 
-	if (fork() == 0) {
+	if (fork() == 0) { // Switch to threading
     	sendfile(data_fd, file_fd, NULL, stat_buf.st_size);
     	close(file_fd);
 		close(data_fd);
 		exit(0);
 	}
-	logger->save_log("User with username: '" + user->get_username() + "' download file with name: '" + input_words[1] +  "' successfully.");
+	logger->save_log("User with username: '" + user->get_username() + "' download file with name: '" + 
+								input_words[1] +  "' successfully.");
 	close(file_fd);
 }
 
@@ -247,7 +249,7 @@ void CommandHandler::pass_command(int client_fd) {
 }
 
 std::string CommandHandler::help_command(int client_fd) {
-	std::string message;
+	std::string message; // Change to sstream
 
 	message += "214\n";
 	message += "1) USER [name], Its argument is used to specify the user's string. It is used for user authentication.\n";

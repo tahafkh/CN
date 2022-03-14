@@ -18,8 +18,8 @@ private:
     void tokenize_input(std::string input);
     std::string build_path(std::string input_path);
 
-    void mkd_command(int client_fd);
-    void dele_command(User* user);
+    std::string mkd_command(int client_fd);
+    std::string dele_command(User* user);
     void ls_command(int client_fd);
     void cwd_command(User* user);
     void rename_command(User* user);
