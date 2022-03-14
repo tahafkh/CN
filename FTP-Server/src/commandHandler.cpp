@@ -102,13 +102,15 @@ std::string CommandHandler::dele_command(User* user) {
 			remove(path.c_str());
 		else
 			throw WritingError();
-		logger->save_log("User with username: '" + user->get_username() + "' delete file with name: '" + input_words[2] +  "' successfully.");
+		logger->save_log("User with username: '" + user->get_username() + "' deleted file with name: '" + 
+									input_words[2] +  "'.");
 	} else if (input_words[1] == "-d") {
 		if (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
 			system(("rm -rf " + path).c_str());
 		else 
 			throw WritingError();
-		logger->save_log("User with username: '" + user->get_username() + "' delete directory with path: '" + input_words[2] +  "' successfully.");
+		logger->save_log("User with username: '" + user->get_username() + "' deleted directory with path: '" + 
+									input_words[2] +  "'.");
 	} else {
 		throw WritingError();
 	}
@@ -180,8 +182,8 @@ void CommandHandler::rename_command(User* user) {
 	std::string new_name = user->get_cwd() + "/" + input_words[2];
 	if (std::rename(file_name.c_str(), new_name.c_str()) < 0)
 		throw WritingError();
-	logger->save_log("User with username: '" + user->get_username() + "' rename file with name: '" + 
-								input_words[1] +  "' to new name: '" + input_words[2] + "' successfully.");
+	logger->save_log("User with username: '" + user->get_username() + "' renamed file with name: '" + 
+								input_words[1] +  "' to new name: '" + input_words[2] + "'.");
 }
 
 void CommandHandler::retr_command(int client_fd) {
@@ -191,8 +193,6 @@ void CommandHandler::retr_command(int client_fd) {
 		throw WritingError();
 	if (database->is_restricted(input_words[1]) && !user->is_admin())
 		throw IllegalAccess();
-	if (input_words[1].find('/') != std::string::npos)
-		throw WritingError();
 	
 	struct stat sb;
 	std::string path = build_path(input_words[1]);
@@ -216,14 +216,15 @@ void CommandHandler::retr_command(int client_fd) {
 	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
 		throw SendDataFailed();
 
-	if (fork() == 0) { // Switch to threading
+
+	if (fork() == 0) {
     	sendfile(data_fd, file_fd, NULL, stat_buf.st_size);
     	close(file_fd);
 		close(data_fd);
 		exit(0);
 	}
-	logger->save_log("User with username: '" + user->get_username() + "' download file with name: '" + 
-								input_words[1] +  "' successfully.");
+	logger->save_log("User with username: '" + user->get_username() + "' downloaded file with name: '" + 
+								input_words[1] +  "'.");
 	close(file_fd);
 }
 
@@ -249,33 +250,33 @@ void CommandHandler::pass_command(int client_fd) {
 }
 
 std::string CommandHandler::help_command(int client_fd) {
-	std::string message; // Change to sstream
+	std::stringstream message;
 
-	message += "214\n";
-	message += "1) USER [name], Its argument is used to specify the user's string. It is used for user authentication.\n";
-	message += "2) Pass [password], Its argument is used to specify the user's password. It is used for user login.\n";
-	message += "3) PWD, It is used for get the path of current working directory.\n";
-	message += "4) MKD [directory path], Its argument is used to specify the new directory's path. It is used for creat new directory in specified path\n";
-	message += "5) DELE -f [file name], Its argument is used to specify the file's name. It is used for delete file with specified name\n";
-	message += "6) DELE -d [directory path], Its argument is used to specify the directory's path. It is used for delete directory with specified path\n";
-	message += "7) LS, It is used for view files in the current working directory.\n";
-	message += "8) CWD [path], Its argument is used to specify the new directory's path. It is used for change the current working directory to specified path.";
-	message += "If the argument equals to '..' it goes to previous directory and if no argument is entered, it goes to the first directory.\n";
-	message += "9) RENAME [from] [to], First argument is used to specify the file's name and second argument is used to specify new name for that file.";
-	message += "It is used for reaname file, if available.\n";
-	message += "10) RETR [name], Its argument is used to specify the file's name. It is used for download file with the given name, if available.\n";
-	message += "11) HELP, It is used to display commands on the server along with instructions for using them.\n";
-	message += "12) QUIT, It is used for logout and remove current user from the system.\n";
+	message << "214\n"
+			<< "1) USER [name], Its argument is used to specify the user's string. It is used for user authentication.\n"
+			<< "2) Pass [password], Its argument is used to specify the user's password. It is used for user login.\n"
+			<< "3) PWD, It is used for get the path of current working directory.\n"
+			<< "4) MKD [directory path], Its argument is used to specify the new directory's path. It is used for creat new directory in specified path\n"
+			<< "5) DELE -f [file name], Its argument is used to specify the file's name. It is used for delete file with specified name\n"
+			<< "6) DELE -d [directory path], Its argument is used to specify the directory's path. It is used for delete directory with specified path\n"
+			<< "7) LS, It is used for view files in the current working directory.\n"
+			<< "8) CWD [path], Its argument is used to specify the new directory's path. It is used for change the current working directory to specified path."
+			<< "If the argument equals to '..' it goes to previous directory and if no argument is entered, it goes to the first directory.\n"
+			<< "9) RENAME [from] [to], First argument is used to specify the file's name and second argument is used to specify new name for that file."
+			<< "It is used for reaname file, if available.\n"
+			<< "10) RETR [name], Its argument is used to specify the file's name. It is used for download file with the given name, if available.\n"
+			<< "11) HELP, It is used to display commands on the server along with instructions for using them.\n"
+			<< "12) QUIT, It is used for logout and remove current user from the system.\n";
 
 	char tmp[100] = {0};
 	strcpy(tmp, "hp ");
-	strcat(tmp, std::to_string(message.size()).c_str());
+	strcat(tmp, std::to_string(message.str().size()).c_str());
 	strcat(tmp, "$");
 
 	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
 		throw SendDataFailed();
 
-	return message;
+	return message.str();
 }
 
 void CommandHandler::quit_command(int client_fd) {
@@ -295,7 +296,7 @@ std::string CommandHandler::handle_command(int client_fd) {
 	} 
 	else if (input_words[0] == "pass") {
 		pass_command(client_fd);
-		logger->save_log("User with username: '" + user->get_username() + "' entered successfully.");
+		logger->save_log("User with username: '" + user->get_username() + "' logged in.");
 		return LOGIN_SUCCESS;
 	} 
 	
@@ -308,7 +309,8 @@ std::string CommandHandler::handle_command(int client_fd) {
 	else if (input_words[0] == "mkd") {
 		mkd_command(client_fd);
 		std::string path = user->get_cwd() + "/" + input_words[1];
-		logger->save_log("User with username: '" + user->get_username() + "' create directory or file with path: '" + input_words[1] +  "' successfully.");
+		logger->save_log("User with username: '" + user->get_username() + "' created directory or file with path: '" + 
+									input_words[1] +  "'.");
 		return "257: " + path + " created.";
 	} 
 	
@@ -344,7 +346,7 @@ std::string CommandHandler::handle_command(int client_fd) {
 	
 	else if (input_words[0] == "quit") {
 		quit_command(client_fd);
-		logger->save_log("User with username: '" + user->get_username() + "' exit successfully.");
+		logger->save_log("User with username: '" + user->get_username() + "' logged out.");
 		return LOGOUT_SUCCESS;
 	}
 

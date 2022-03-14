@@ -1,6 +1,7 @@
 # idea stuffs
 .idea/
 *.vscode/
+build
 *.o
 *.out
 log.txt

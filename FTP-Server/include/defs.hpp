@@ -38,6 +38,6 @@
 #define LISTEN_FAILED "Listen failed."
 #define ACCEPT_FAILED "Accept failed."
 #define SEND_DATA_FAILED "Send data failed."
-#define RECIVE_DATA_FAILED "Recive data failed."
+#define RECIVE_DATA_FAILED "Receive data failed."
 
 #endif
