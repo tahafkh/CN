@@ -7,7 +7,7 @@ User::User(std::string _username, std::string _password, bool _admin_status, int
     this->admin_status = _admin_status;
     this->authenticated = false;
     this->curr_dir = getenv("PWD");
-    this->size_limit = _size * MAX_BUFFER_SIZE;
+    this->size_limit = _size * 1024; //KB -> B
 }
 
 User::~User() {}

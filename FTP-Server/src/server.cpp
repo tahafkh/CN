@@ -35,7 +35,7 @@ void Server::initialize_socket() {
 	if (bind(command_socket, (struct sockaddr *)&command_addr, command_addr_len) < 0) 
 		throw BindFailed(); 
 
-    if (listen(command_socket, 3) < 0) 
+    if (listen(command_socket, 10) < 0) 
 		throw ListenFailed();
 }
 

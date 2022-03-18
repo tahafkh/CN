@@ -216,7 +216,6 @@ void CommandHandler::retr_command(int client_fd) {
 	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
 		throw SendDataFailed();
 
-
 	if (fork() == 0) {
     	sendfile(data_fd, file_fd, NULL, stat_buf.st_size);
     	close(file_fd);
