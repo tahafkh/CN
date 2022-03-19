@@ -13,7 +13,7 @@ private:
     std::ifstream json_file;
     std::vector <User*> users;
     std::map <int, User*> fd_users;
-    std::map <int, int> command_fds;
+    std::map <int, int> data_fds;
     std::vector <std::string> restricted_files;
     int command_port;
     int data_port;
@@ -29,9 +29,9 @@ public:
     User* find_user(int fd);
     void set_user_fd(int fd, User* user);
     void remove_user_fd(int fd);
-    int get_command_fd(int data_fd);
-    void set_command_fd(int data_fd, int command_fd);
-    void remove_command_fd(int fd);
+    int get_data_fd(int command_fd);
+    void set_data_fd(int command_fd, int data_fd);
+    void remove_data_fd(int command_fd);
     bool is_restricted(std::string fname);
     int get_command_port();
     int get_data_port();

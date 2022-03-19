@@ -73,7 +73,7 @@ void Server::run() {
 						close(i);
 						User* user = database->find_user(i);
 						database->remove_user_fd(i);
-						database->remove_command_fd(i);
+						database->remove_data_fd(i);
 						if (user != nullptr && user->is_logged_in())
 							user->logout();
 						FD_CLR(i, &master_set);

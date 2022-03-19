@@ -77,20 +77,20 @@ void DataBase::remove_user_fd(int fd) {
     fd_users.erase(fd);
 }
 
-int DataBase::get_command_fd(int data_fd) {
-    if (command_fds.count(data_fd))
-        return command_fds[data_fd];
+int DataBase::get_data_fd(int command_fd) {
+    if (data_fds.count(command_fd))
+        return data_fds[command_fd];
     return NOT_FOUND;
 }
 
-void DataBase::set_command_fd(int data_fd, int command_fd) {
-    command_fds[data_fd] = command_fd;
+void DataBase::set_data_fd(int command_fd, int data_fd) {
+    data_fds[command_fd] = data_fd;
 }
 
-void DataBase::remove_command_fd(int fd) {
-    if (command_fds.count(fd)) {
-        close(command_fds[fd]);
-        command_fds.erase(fd);
+void DataBase::remove_data_fd(int command_fd) {
+    if (data_fds.count(command_fd)) {
+        close(data_fds[command_fd]);
+        data_fds.erase(command_fd);
     }
 }
 

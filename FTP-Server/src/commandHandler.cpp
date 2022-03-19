@@ -122,7 +122,7 @@ void CommandHandler::ls_command(int client_fd) {
 	if (user == nullptr || !user->is_logged_in())
 		throw UserNotLoggedin();
 	
-	int data_fd = database->get_command_fd(client_fd);
+	int data_fd = database->get_data_fd(client_fd);
 	char tmp[100] = {0};
 	strcpy(tmp, "ls");
 	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
@@ -202,7 +202,7 @@ void CommandHandler::retr_command(int client_fd) {
 		throw FullCapacity();
 	user->subtract_size(sb.st_size);
 	
-	int data_fd = database->get_command_fd(client_fd);
+	int data_fd = database->get_data_fd(client_fd);
 	struct stat stat_buf; 
 	int file_fd = open(path.c_str() , O_RDONLY);
     fstat (file_fd, &stat_buf);
@@ -245,7 +245,7 @@ void CommandHandler::pass_command(int client_fd) {
 		throw BadSequence();
 	user->login(input_words[1]);
 	int sock = create_data_connection(client_fd);
-	database->set_command_fd(client_fd, sock);
+	database->set_data_fd(client_fd, sock);
 }
 
 std::string CommandHandler::help_command(int client_fd) {
@@ -283,7 +283,7 @@ void CommandHandler::quit_command(int client_fd) {
 		throw BadSequence();
 	user->logout();
 	database->remove_user_fd(client_fd);
-	database->remove_command_fd(client_fd);
+	database->remove_data_fd(client_fd);
 }
 
 std::string CommandHandler::handle_command(int client_fd) {
