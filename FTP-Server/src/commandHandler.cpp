@@ -102,15 +102,15 @@ std::string CommandHandler::dele_command(User* user) {
 			remove(path.c_str());
 		else
 			throw WritingError();
-		logger->save_log("User with username: '" + user->get_username() + "' deleted file with name: '" + 
-									input_words[2] +  "'.");
+		logger->save_log("User with username: '" + user->get_username() + "' deleted file with path: '" + 
+									path +  "'.");
 	} else if (input_words[1] == "-d") {
 		if (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
 			system(("rm -rf " + path).c_str());
 		else 
 			throw WritingError();
 		logger->save_log("User with username: '" + user->get_username() + "' deleted directory with path: '" + 
-									input_words[2] +  "'.");
+									path +  "'.");
 	} else {
 		throw WritingError();
 	}
@@ -306,16 +306,14 @@ std::string CommandHandler::handle_command(int client_fd) {
 	} 
 	
 	else if (input_words[0] == "mkd") {
-		mkd_command(client_fd);
-		std::string path = user->get_cwd() + "/" + input_words[1];
+		std::string path = mkd_command(client_fd);
 		logger->save_log("User with username: '" + user->get_username() + "' created directory or file with path: '" + 
-									input_words[1] +  "'.");
+									path +  "'.");
 		return "257: " + path + " created.";
 	} 
 	
 	else if (input_words[0] == "dele") {
-		dele_command(user);
-		std::string path = user->get_cwd() + "/" + input_words[2];
+		std::string path = dele_command(user);
 		return "250: " + path + " deleted";
 	} 
 	
