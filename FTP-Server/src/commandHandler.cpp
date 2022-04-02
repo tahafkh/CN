@@ -123,9 +123,8 @@ void CommandHandler::ls_command(int client_fd) {
 		throw UserNotLoggedin();
 	
 	int data_fd = database->get_data_fd(client_fd);
-	char tmp[100] = {0};
-	strcpy(tmp, "ls");
-	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
+	std::string msg = "ls";
+	if (send(client_fd, msg.data(), msg.size(), 0) < 0)
 		throw SendDataFailed();
 	std::vector<std::string> dir_list;
 	std::string result;
