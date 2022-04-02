@@ -1,6 +1,6 @@
 {
-    "commandChannelPort": 8080,
-    "dataChannelPort":8081,
+    "commandChannelPort": 9000,
+    "dataChannelPort":9001,
     "users": [
       {
           "user": "Taha",

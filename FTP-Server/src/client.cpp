@@ -114,7 +114,7 @@ void Client::handle_response(std::string response) {
 	} 
 	else if (response.length() > 1 && response.substr(0,2) == "hp") {
 		off_t msg_len = std::stol(response.substr(3, response.find('$') - 2));
-		std::cerr << msg_len << std::endl;
+
 		int total_read = 0;
 		int last_read = 0;
 		

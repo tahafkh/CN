@@ -206,14 +206,11 @@ void CommandHandler::retr_command(int client_fd) {
 	struct stat stat_buf; 
 	int file_fd = open(path.c_str() , O_RDONLY);
     fstat (file_fd, &stat_buf);
-	char tmp[100] = {0};
-	strcpy(tmp, "dl ");
-	strcat(tmp, (path.substr(path.find_last_of("/\\") + 1)).c_str());
-	strcat(tmp, "#");
-	strcat(tmp, std::to_string(stat_buf.st_size).c_str());
-	strcat(tmp, "$");
+	std::string name = path.substr(path.find_last_of("/\\") + 1);
 
-	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
+	std::string msg = "dl " + name + "#" + std::to_string(stat_buf.st_size) + "$";
+
+	if (send(client_fd, msg.data(), msg.size(), 0) < 0)
 		throw SendDataFailed();
 
 	if (fork() == 0) {
@@ -223,7 +220,7 @@ void CommandHandler::retr_command(int client_fd) {
 		exit(0);
 	}
 	logger->save_log("User with username: '" + user->get_username() + "' downloaded file with name: '" + 
-								input_words[1] +  "'.");
+								name +  "'.");
 	close(file_fd);
 }
 
@@ -267,12 +264,9 @@ std::string CommandHandler::help_command(int client_fd) {
 			<< "11) HELP, It is used to display commands on the server along with instructions for using them.\n"
 			<< "12) QUIT, It is used for logout and remove current user from the system.\n";
 
-	char tmp[100] = {0};
-	strcpy(tmp, "hp ");
-	strcat(tmp, std::to_string(message.str().size()).c_str());
-	strcat(tmp, "$");
+	std::string msg = "hp " + std::to_string(message.str().size()) + "$";
 
-	if (send(client_fd, tmp, strlen(tmp), 0) < 0)
+	if (send(client_fd, msg.data(), msg.size(), 0) < 0)
 		throw SendDataFailed();
 
 	return message.str();
