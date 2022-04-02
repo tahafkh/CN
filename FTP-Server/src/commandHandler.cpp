@@ -46,9 +46,8 @@ void CommandHandler::tokenize_input(std::string input) {
 }
 
 int CommandHandler::create_data_connection(int fd) {
-	char buff[100] = {0};
-	strcpy(buff, "connect");
-	send(fd, buff, strlen(buff), 0);
+	std::string msg = "connect";
+	send(fd, msg.data(), msg.size(), 0);
 
 	struct sockaddr_in client_addr;
 	int addr_len = sizeof(client_addr);
