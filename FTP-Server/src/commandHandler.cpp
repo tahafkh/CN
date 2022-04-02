@@ -208,7 +208,7 @@ void CommandHandler::retr_command(int client_fd) {
     fstat (file_fd, &stat_buf);
 	char tmp[100] = {0};
 	strcpy(tmp, "dl ");
-	strcat(tmp, input_words[1].c_str());
+	strcat(tmp, (path.substr(path.find_last_of("/\\") + 1)).c_str());
 	strcat(tmp, "#");
 	strcat(tmp, std::to_string(stat_buf.st_size).c_str());
 	strcat(tmp, "$");
