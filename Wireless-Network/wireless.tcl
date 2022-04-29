@@ -1,11 +1,12 @@
 Mac/802_11 set bandwidth_ [lindex $argv 0]
 set error_rate [lindex $argv 1]
+set packet_size [lindex $argv 2]
 
 set MESSAGE_PORT 42
 set BROADCAST_ADDR -1
 set X 1200
 set Y 800
-
+set rate 200.0Kb
 
 #set val(chan)           Channel/WirelessChannel    ;#Channel Type
 set val(prop)           Propagation/TwoRayGround   ;# radio-propagation model
@@ -123,8 +124,8 @@ $ns attach-agent $node_(0) $udp_agent_0
 $ns connect $udp_agent_0 $null_0
 # Set up CBR for the connection
 $cbr_08 attach-agent $udp_agent_0
-$cbr_08 set packetSize_ 50Kb
-$cbr_08 set rate_ 150.0Kb
+$cbr_08 set packetSize_ $packet_size
+$cbr_08 set rate_ $rate
 $cbr_08 set random_ null
 
 
@@ -135,16 +136,16 @@ $ns attach-agent $node_(3) $udp_agent_3
 $ns connect $udp_agent_3 $null_3
 # Set up CBR for the connection
 $cbr_3 attach-agent $udp_agent_3
-$cbr_3 set packetSize_ 150Kb
-$cbr_3 set rate_ 200.0Kb
+$cbr_3 set packetSize_ $packet_size
+$cbr_3 set rate_ $rate
 $cbr_3 set random_ null
 
 # Define some events for the simulation
 
-$ns at 1.0 "$cbr_08 start"
-$ns at 40.0 "$cbr_08 stop"
+$ns at 0.1 "$cbr_08 start"
+$ns at 100.0 "$cbr_08 stop"
 
-$ns at 30.0 "$cbr_3 start"
+$ns at 0.1 "$cbr_3 start"
 $ns at 100.0 "$cbr_3 stop"
 
 # End sim
@@ -164,7 +165,7 @@ proc set_pos {} {
     $ns initial_node_pos $node_(0) 30
 
     # B
-    $node_(1) set X_ 50.0
+    $node_(1) set X_ 100.0
     $node_(1) set Y_ 250.0
     $node_(1) set Z_ 0.0
     $ns initial_node_pos $node_(1) 30
@@ -217,7 +218,7 @@ proc finish {} {
     $ns flush-trace
     close $f
     close $nf
-    exec nam wireless.nam &
+    # exec nam wireless.nam &
     exit 0
 }
 
