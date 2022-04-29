@@ -218,7 +218,7 @@ proc finish {} {
     $ns flush-trace
     close $f
     close $nf
-    # exec nam wireless.nam &
+    exec nam wireless.nam &
     exit 0
 }
 
