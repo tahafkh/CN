@@ -57,16 +57,6 @@ create-god 9
 
 #set mac0 [new Mac/802_11]
 
-# Error model for simulating error with a set rate
-proc UniformErr {} {
-    global error_rate
-    set error_model [new ErrorModel]
-    $error_model unit pkt
-    $error_model set rate $error_rate
-    $error_model ranvar [new RandomVariable/Uniform]
-    return $error_model
-}
-
 $ns node-config -adhocRouting $val(rp) \
                 -llType $val(ll) \
                 -macType $val(mac) \
@@ -83,6 +73,17 @@ $ns node-config -adhocRouting $val(rp) \
                 -routerTrace OFF \
                 -macTrace ON \
                 -movementTrace OFF
+
+# Error model for simulating error with a set rate
+proc UniformErr {} {
+    global error_rate
+    set error_model [new ErrorModel]
+    $error_model unit pkt
+    $error_model set rate_ $error_rate
+    $error_model ranvar [new RandomVariable/Uniform]
+    return $error_model
+}
+
 
 # Create nodes
 # A : 0, B : 1, C : 2
