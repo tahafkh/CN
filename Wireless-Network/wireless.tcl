@@ -42,13 +42,6 @@ set topo       [new Topography]
 
 $topo load_flatgrid $X $Y
 
-$ns color 3 green;
-$ns color 8 red;
-$ns color 1 black;
-$ns color 7 purple;
-$ns color 6 tan;
-$ns color 2 orange;
-
 #
 # Create God
 #
