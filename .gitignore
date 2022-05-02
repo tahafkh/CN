@@ -1,8 +1,11 @@
-# idea stuffs
+# idea stuff
 .idea/
 *.vscode/
+build
 *.o
 *.out
+log.txt
+*/Downloads
 *.tr
 *.nam
 *.ipynb_checkpoints

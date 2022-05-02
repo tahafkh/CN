@@ -1,0 +1,21 @@
+{
+    "commandChannelPort": 9000,
+    "dataChannelPort":9001,
+    "users": [
+      {
+          "user": "Taha",
+          "password": "1234",
+          "admin": "true",
+          "size": "1000000"
+      },
+      {
+          "user": "Kia",
+          "password": "1234",
+          "admin": "false",
+          "size": "1000000"
+      }
+    ],
+      "files": [
+        "config.json"
+      ]
+  }
