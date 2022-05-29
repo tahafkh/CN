@@ -6,3 +6,6 @@ build
 *.out
 log.txt
 */Downloads
+*.tr
+*.nam
+*.ipynb_checkpoints
