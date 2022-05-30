@@ -25,6 +25,8 @@ private:
     
     int findClosestNode(std::map<int, int> &, std::set<int> &);
     void print_routing_table(int, std::map<int, int> &, std::map<int, int> &);
+    void print_iteration_table(int, std::map<int, int>&);
+    void print_lsrp_routing_table(int, std::map<int, int> &, std::map<int, int> &);
     void set_topology(std::string);
     void show_topology();
     void lsrp_route(int src_node);
