@@ -325,13 +325,19 @@ void Network::handle_command(std::string cmd)
     {
         int src_node;
         line >> src_node;
+        auto start = chrono::high_resolution_clock::now();
         lsrp_route(src_node);
+        auto end = chrono::high_resolution_clock::now();
+        cout << "Time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
     }
     else if (command == DVRP)
     {
         int src_node;
         line >> src_node;
+        auto start = chrono::high_resolution_clock::now();
         dvrp_route(src_node);
+        auto end = chrono::high_resolution_clock::now();
+        cout << "Time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
     }
     else if (command == MODIFY)
     {
