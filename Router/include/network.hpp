@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <set>
 #include <cmath>
+#include <chrono>
+
 
 #include "defs.h"
 
@@ -21,6 +23,8 @@ private:
 
     std::set<int, std::less<int>> nodes;
     
+    int findClosestNode(std::map<int, int> &, std::set<int> &);
+    void print_routing_table(int, std::map<int, int> &, std::map<int, int> &);
     void set_topology(std::string);
     void show_topology();
     void lsrp_route(int src_node);
