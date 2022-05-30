@@ -51,6 +51,47 @@ Network::Network(std::string topology_file)
     set_topology(line);
 }
 
+void Network::print_lsrp_routing_table(int src_node, map<int, int> &predecessor, map<int, int> &distance) {
+    cout << "Path: [s]->[d] Min-Cost Shortest Path" << endl;
+    cout << "     ";
+    for (int i = 0 ; i < 3 ; i++) {
+        for (int j = 0 ; j < 11 ; j++)
+            cout<<"-";
+        cout<<"  ";
+    }
+    cout << endl;
+
+    for (auto itr = nodes.begin(); itr != nodes.end(); itr++)
+    {   
+        int current = *itr;
+        if (current == src_node)
+            continue;
+        vector<int> path;
+        while (predecessor.find(current) != predecessor.end())
+        {
+            path.push_back(current);
+            current = predecessor[current];
+        }
+
+        path.push_back(src_node);
+        int v = *itr;
+
+        cout << "      ";
+        cout << "[" << src_node << "] -> [" << v << "]";
+
+        cout << "       ";
+        cout << distance[v];
+        cout << "       ";
+
+        cout << src_node;
+        for (int i = path.size() - 2; i >= 0; i--)
+        {
+            cout << "->" << path[i];
+        }
+        cout << "\n";
+    }
+}
+
 void Network::print_routing_table(int src_node, map<int, int> &predecessor, map<int, int> &distance)
 {
     cout << "Dest  Next Hop  Dist  Shortest path  " << endl;
@@ -98,6 +139,28 @@ void Network::print_routing_table(int src_node, map<int, int> &predecessor, map<
     }
 }
 
+void Network::print_iteration_table(int itr_num, map<int, int> &distance) {
+    cout << "                Iter " << itr_num << ":               "<< endl;
+    cout << "Dest            ";
+    for (auto itr = nodes.begin() ; itr != nodes.end() ; itr++) {
+        cout << "| " << *itr << " |  ";
+    }
+    cout << endl;
+    cout << "Cost            ";
+    for (auto itr = nodes.begin() ; itr != nodes.end() ; itr++) {
+        int v = *itr;
+        if (distance[v] == INT16_MAX)
+            cout << "| " << NO_ROUTE << " |  ";
+        else
+            cout << "| " << distance[v] << " |  ";
+    }
+    cout << endl;
+    for (int j = 0; j < 40 ; j++)
+        cout << "-";
+    cout << endl;
+    cout << endl;
+}
+
 void Network::set_topology(std::string line)
 {
     stringstream topo(line);
@@ -113,6 +176,14 @@ void Network::set_topology(std::string line)
 
         this->topology[make_pair(tokens[0], tokens[1])] = tokens[2];
         this->topology[make_pair(tokens[1], tokens[0])] = tokens[2];
+    }
+
+    for (auto itr = nodes.begin(); itr != nodes.end(); itr++) {
+        for (auto itr2 = nodes.begin(); itr2 != nodes.end(); itr2++) {
+            if (*itr != *itr2 && this->topology.find(make_pair(*itr, *itr2)) == this->topology.end()) {
+                this->topology[make_pair(*itr, *itr2)] = NO_ROUTE;
+            }
+        }
     }
 }
 
@@ -148,7 +219,8 @@ void Network::show_topology()
                 cout << " 0 ";
                 continue;
             }
-            if (this->topology.find(make_pair(*itr, *itr2)) == this->topology.end())
+            // if (this->topology.find(make_pair(*itr, *itr2)) == this->topology.end())
+            if (this->topology[make_pair(*itr, *itr2)] == NO_ROUTE)
             {
                 cout << "-1 ";
                 continue;
@@ -180,7 +252,6 @@ void Network::lsrp_route(int src_node)
             cerr << "No close nodes found" << endl;
             return;
         }
-        
         sptSet.insert(u);
 
         for (auto itr = nodes.begin(); itr != nodes.end(); itr++)
@@ -192,9 +263,11 @@ void Network::lsrp_route(int src_node)
                 predecessor[v] = u;
             }
         }
+
+        print_iteration_table(sptSet.size(), distance);
     }
 
-    // print_routing_table(src_node, predecessor, distance);
+    print_lsrp_routing_table(src_node, predecessor, distance);
 
 }
 
