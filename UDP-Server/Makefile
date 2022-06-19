@@ -1,0 +1,16 @@
+CC = g++
+BUILD_DIR = build
+SRC_DIR = src
+INCLUDE_DIR = include
+CFLAGS = -std=c++11 -Wall -Werror -I$(INCLUDE_DIR)
+
+all: receiver sender
+
+receiver: $(INCLUDE_DIR)/defs.hpp $(SRC_DIR)/defs.cpp $(INCLUDE_DIR)/receiver.hpp $(SRC_DIR)/receiver.cpp
+	g++ -std=c++11 -pthread $(SRC_DIR)/defs.cpp $(SRC_DIR)/receiver.cpp -o receiver
+
+sender: $(INCLUDE_DIR)/defs.hpp $(SRC_DIR)/defs.cpp $(INCLUDE_DIR)/sender.hpp $(SRC_DIR)/sender.cpp
+	g++ -std=c++11 -pthread $(SRC_DIR)/defs.cpp $(SRC_DIR)/sender.cpp -o sender
+
+clean: receiver sender
+	rm -f receiver sender
