@@ -290,7 +290,6 @@ void Network::dvrp_route(int src_node)
 
             if (weight == NO_ROUTE) 
                 continue;
-
             if (distance[u] != INT16_MAX && distance[u] + weight < distance[v])
             {
                 distance[v] = distance[u] + weight;
