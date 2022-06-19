@@ -92,10 +92,10 @@ void Network::print_lsrp_routing_table(int src_node, map<int, int> &predecessor,
     }
 }
 
-void Network::print_routing_table(int src_node, map<int, int> &predecessor, map<int, int> &distance)
+void Network::print_dvrp_routing_table(int src_node, map<int, int> &predecessor, map<int, int> &distance)
 {
     cout << "Dest  Next Hop  Dist  Shortest path  " << endl;
-    for (int j = 0; j < 50; j++)
+    for (int j = 0; j < 37; j++)
         cout << "-";
     cout << endl;
 
@@ -288,9 +288,8 @@ void Network::dvrp_route(int src_node)
             int v = itr->first.second;
             int weight = itr->second;
 
-            if(weight == -1)
-                weight = 0;
-                
+            if (weight == NO_ROUTE) 
+                continue;
             if (distance[u] != INT16_MAX && distance[u] + weight < distance[v])
             {
                 distance[v] = distance[u] + weight;
@@ -299,7 +298,7 @@ void Network::dvrp_route(int src_node)
         }
     }
 
-    print_routing_table(src_node, predecessor, distance);
+    print_dvrp_routing_table(src_node, predecessor, distance);
 }
 
 void Network::modify_topology(std::pair<int, int> nodes, int new_cost)
@@ -325,13 +324,19 @@ void Network::handle_command(std::string cmd)
     {
         int src_node;
         line >> src_node;
+        auto start = chrono::high_resolution_clock::now();
         lsrp_route(src_node);
+        auto end = chrono::high_resolution_clock::now();
+        cout << "Time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
     }
     else if (command == DVRP)
     {
         int src_node;
         line >> src_node;
+        auto start = chrono::high_resolution_clock::now();
         dvrp_route(src_node);
+        auto end = chrono::high_resolution_clock::now();
+        cout << "Time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
     }
     else if (command == MODIFY)
     {
