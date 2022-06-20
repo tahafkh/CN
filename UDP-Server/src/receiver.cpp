@@ -6,8 +6,8 @@ int socket_fd;
 struct sockaddr_in server_addr, client_addr;
 
 bool read_frame(int *sender_id, int *seq_num, char *data, int *data_size, bool *eot, char *frame) {
-    *eot = frame[0] == 0x0 ? true : false;
-    int ptr = 1;
+    *eot = frame[1] == 0x0 ? true : false; // first byte is ISACK
+    int ptr = 2;
     uint32_t net_sender_id;
     memcpy(&net_sender_id, frame + ptr, 4);
     ptr += 4;
@@ -29,8 +29,9 @@ bool read_frame(int *sender_id, int *seq_num, char *data, int *data_size, bool *
 }
 
 void create_ack(int sender_id, int seq_num, char *ack, bool error) {
-    ack[0] = error ? 0x0 : 0x1;
-    int ptr = 1;
+    ack[0] = 0x1;
+    ack[1] = error ? 0x0 : 0x1;
+    int ptr = 2;
     uint32_t net_sender_id = htonl(sender_id);
     memcpy(ack + ptr, &net_sender_id, 4);
     ptr += 4;
@@ -156,7 +157,8 @@ int main(int argc, char * argv[]) {
 
                         int shift = 1;
                         for (int i = 1; i < window_len; i++) {
-                            if (!window_recv_mask[i]) break;
+                            if (!window_recv_mask[i]) 
+                                break;
                             shift += 1;
                         }
                         for (int i = 0; i < window_len - shift; i++) {

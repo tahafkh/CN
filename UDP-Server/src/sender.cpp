@@ -15,13 +15,13 @@ time_stamp TMIN = current_time();
 mutex window_info_mutex;
 
 bool read_ack(int *seq_num, bool *neg, char *ack) {
-    *neg = ack[0] == 0x0 ? true : false;
+    *neg = ack[1] == 0x0 ? true : false; // first byte is ISACK
 
     uint32_t net_seq_num;
-    memcpy(&net_seq_num, ack + 5, 4);
+    memcpy(&net_seq_num, ack + 6, 4);
     *seq_num = ntohl(net_seq_num);
 
-    return ack[9] != checksum(ack, ACK_SIZE - (int) 1);
+    return ack[ACK_SIZE-1] != checksum(ack, ACK_SIZE - (int) 1);
 }
 
 void listen_ack() {
@@ -54,8 +54,9 @@ void listen_ack() {
 }
 
 int create_frame(int seq_num, char *frame, char *data, int data_size, bool eot) {
-    frame[0] = eot ? 0x0 : 0x1;
-    int ptr = 1;
+    frame[0] = 0x0;
+    frame[1] = eot ? 0x0 : 0x1;
+    int ptr = 2;
     uint32_t net_send_id = htonl(id);
     memcpy(frame + ptr, &net_send_id, 4);
     ptr += 4;
@@ -107,8 +108,7 @@ int main(int argc, char *argv[]) {
 
     /* Fill server address data structure */
     server_addr.sin_family = AF_INET;
-    bcopy(dest_hnet->h_addr, (char *)&server_addr.sin_addr, 
-            dest_hnet->h_length); 
+    bcopy(dest_hnet->h_addr, (char *)&server_addr.sin_addr, dest_hnet->h_length); 
     server_addr.sin_port = htons(dest_port);
 
     /* Fill client address data structure */
