@@ -2,6 +2,7 @@
 
 using namespace std;
 
+int id;
 int socket_fd;
 struct sockaddr_in server_addr, client_addr;
 
@@ -17,10 +18,10 @@ bool read_ack(int *seq_num, bool *neg, char *ack) {
     *neg = ack[0] == 0x0 ? true : false;
 
     uint32_t net_seq_num;
-    memcpy(&net_seq_num, ack + 1, 4);
+    memcpy(&net_seq_num, ack + 5, 4);
     *seq_num = ntohl(net_seq_num);
 
-    return ack[5] != checksum(ack, ACK_SIZE - (int) 1);
+    return ack[9] != checksum(ack, ACK_SIZE - (int) 1);
 }
 
 void listen_ack() {
@@ -54,17 +55,28 @@ void listen_ack() {
 
 int create_frame(int seq_num, char *frame, char *data, int data_size, bool eot) {
     frame[0] = eot ? 0x0 : 0x1;
+    int ptr = 1;
+    uint32_t net_send_id = htonl(id);
+    memcpy(frame + ptr, &net_send_id, 4);
+    ptr += 4;
+    
     uint32_t net_seq_num = htonl(seq_num);
+    memcpy(frame + ptr, &net_seq_num, 4);
+    ptr += 4;
+    
     uint32_t net_data_size = htonl(data_size);
-    memcpy(frame + 1, &net_seq_num, 4);
-    memcpy(frame + 5, &net_data_size, 4);
-    memcpy(frame + 9, data, data_size);
-    frame[data_size + 9] = checksum(frame, data_size + (int) 9);
+    memcpy(frame + ptr, &net_data_size, 4);
+    ptr += 4;
+    
+    memcpy(frame + ptr, data, data_size);
+    
+    frame[data_size + ptr] = checksum(frame, data_size + ptr);
 
-    return data_size + (int)10;
+    return data_size + ptr+1;
 }
 
 int main(int argc, char *argv[]) {
+    id = 100;
     char *dest_ip;
     int dest_port;
     int max_buffer_size;

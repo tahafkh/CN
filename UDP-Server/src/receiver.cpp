@@ -5,27 +5,39 @@ using namespace std;
 int socket_fd;
 struct sockaddr_in server_addr, client_addr;
 
-bool read_frame(int *seq_num, char *data, int *data_size, bool *eot, char *frame) {
+bool read_frame(int *sender_id, int *seq_num, char *data, int *data_size, bool *eot, char *frame) {
     *eot = frame[0] == 0x0 ? true : false;
+    int ptr = 1;
+    uint32_t net_sender_id;
+    memcpy(&net_sender_id, frame + ptr, 4);
+    ptr += 4;
+    *sender_id = net_sender_id;
 
     uint32_t net_seq_num;
-    memcpy(&net_seq_num, frame + 1, 4);
+    memcpy(&net_seq_num, frame + ptr, 4);
+    ptr += 4;
     *seq_num = ntohl(net_seq_num);
 
     uint32_t net_data_size;
-    memcpy(&net_data_size, frame + 5, 4);
+    memcpy(&net_data_size, frame + ptr, 4);
+    ptr += 4;
     *data_size = ntohl(net_data_size);
 
-    memcpy(data, frame + 9, *data_size);
+    memcpy(data, frame + ptr, *data_size);
 
-    return frame[*data_size + 9] != checksum(frame, *data_size + (int) 9);
+    return frame[*data_size + ptr] != checksum(frame, *data_size + ptr);
 }
 
-void create_ack(int seq_num, char *ack, bool error) {
+void create_ack(int sender_id, int seq_num, char *ack, bool error) {
     ack[0] = error ? 0x0 : 0x1;
+    int ptr = 1;
+    uint32_t net_sender_id = htonl(sender_id);
+    memcpy(ack + ptr, &net_sender_id, 4);
+    ptr += 4;
     uint32_t net_seq_num = htonl(seq_num);
-    memcpy(ack + 1, &net_seq_num, 4);
-    ack[5] = checksum(ack, ACK_SIZE - (int) 1);
+    memcpy(ack + ptr, &net_seq_num, 4);
+    ptr += 4;
+    ack[ptr] = checksum(ack, ACK_SIZE - (int) 1);
 }
 
 void send_ack() {
@@ -36,6 +48,7 @@ void send_ack() {
     int data_size;
     socklen_t client_addr_size;
     
+    int sender_id;
     int recv_seq_num;
     bool frame_error;
     bool eot;
@@ -45,9 +58,9 @@ void send_ack() {
         frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
                 MSG_WAITALL, (struct sockaddr *) &client_addr, 
                 &client_addr_size);
-        frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
+        frame_error = read_frame(&sender_id, &recv_seq_num, data, &data_size, &eot, frame);
 
-        create_ack(recv_seq_num, ack, frame_error);
+        create_ack(sender_id, recv_seq_num, ack, frame_error);
         sendto(socket_fd, ack, ACK_SIZE, 0, 
                 (const struct sockaddr *) &client_addr, client_addr_size);
     }
@@ -102,6 +115,7 @@ int main(int argc, char * argv[]) {
     int frame_size;
     int data_size;
     int lfr, laf;
+    int sender_id;
     int recv_seq_num;
     bool eot;
     bool frame_error;
@@ -127,9 +141,9 @@ int main(int argc, char * argv[]) {
             frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
                     MSG_WAITALL, (struct sockaddr *) &client_addr, 
                     &client_addr_size);
-            frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
+            frame_error = read_frame(&sender_id, &recv_seq_num, data, &data_size, &eot, frame);
 
-            create_ack(recv_seq_num, ack, frame_error);
+            create_ack(sender_id, recv_seq_num, ack, frame_error);
             sendto(socket_fd, ack, ACK_SIZE, 0, 
                     (const struct sockaddr *) &client_addr, client_addr_size);
 

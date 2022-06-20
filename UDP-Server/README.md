@@ -1,3 +1,13 @@
+# How to Run
+
+For single sender and receiver<br>
+`$ ./receiver <filename> <window_size> <buffer_size> <port>`<br>
+`$ ./sender <filename> <window_size> <buffer_size> <ip> <port>`<br>
+
+For multiple senders and a receiver<br>
+`$ ./receiver <filename> <window_size> <buffer_size> <port>`<br>
+todo: code the shell script
+
 # Problems
 
 1. Router Connection Setup<br>

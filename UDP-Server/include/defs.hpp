@@ -20,8 +20,12 @@
 #include <queue>
 
 #define MAX_DATA_SIZE 1024
-#define MAX_FRAME_SIZE 1034
-#define ACK_SIZE 6
+
+// |1[EOT]|4[sender_id]|4[seq_num]|4[data_size]|1024[data]|1[checksum]|
+#define MAX_FRAME_SIZE 1038
+
+// |1[N/ACK]|4[sender_id]|4[seq_num]|1[checksum]|
+#define ACK_SIZE 10
 
 // time definitions
 #define current_time chrono::high_resolution_clock::now
