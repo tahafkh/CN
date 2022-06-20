@@ -32,6 +32,8 @@
 
 #define IS_ACK_INDEX 0
 
+#define LOSS_RATE 10
+
 // |1[IS_ACK]|1[EOT]|4[sender_id]|4[seq_num]|4[data_size]|1024[data]|1[checksum]|
 #define MAX_FRAME_SIZE 1039
 #define EOT_INDEX 1

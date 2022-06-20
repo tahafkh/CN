@@ -80,6 +80,7 @@ void send_packet() {
 }
 
 void recv_packet() {
+    srand (time(NULL));
     read_done = false;
     int router_addr_len = sizeof(router_addr); 
 	fd_set master_set, working_set;
@@ -116,6 +117,11 @@ void recv_packet() {
                         socket_id_fd_map[curr_id++] = -1;
 						FD_CLR(i, &master_set);
 					} else {
+                        if (rand()%100 < LOSS_RATE) {
+                            cerr << "packet lost" << endl;
+                            continue;
+                        }
+                        
                         bool eot = data[EOT_INDEX] == 0x0 ? true : false;
                         buffer.push(data);
 
