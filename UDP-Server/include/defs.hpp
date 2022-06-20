@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include <queue>
 
 #define MAX_DATA_SIZE 1024
 #define MAX_FRAME_SIZE 1034
@@ -32,6 +33,7 @@
 #define TIMEOUT 10
 
 #define STDBY_TIME 3000
+
 
 // sender/receiver file directories
 #define SENDER_DIR "sender_files/"
