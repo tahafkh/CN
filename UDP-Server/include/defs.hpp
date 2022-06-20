@@ -21,6 +21,7 @@
 // utility libraries
 #include <queue>
 #include <map>
+#include <math.h>
 
 // IP constants
 #define IP_PROTOCOL 0 
@@ -53,17 +54,18 @@
 
 #define STDBY_TIME 3000
 
-
 // sender/receiver file directories
 #define SENDER_DIR "sender_files/"
 #define RECEIVER_DIR "receiver_files/"
 
 typedef unsigned char byte;
 
+/* Router RED constants */
+const double wq = 0.002; // weight associated with the current router queue length
+const double maxp = 0.5; // maximum drop probability
+const double minth_coeff = 1/4; // min threshold coefficient
+const double maxth_coeff = 3/4; // max threshold coefficient
+
 char checksum(char *frame, int count);
-// int create_frame(int seq_num, char *frame, char *data, int data_size, bool eot);
-// void create_ack(int seq_num, char *ack, bool error);
-// bool read_frame(int *seq_num, char *data, int *data_size, bool *eot, char *frame);
-// bool read_ack(int *seq_num, bool *error, char *ack);
 
 #endif // DEFS_HPP

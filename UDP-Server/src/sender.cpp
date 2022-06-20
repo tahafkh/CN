@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
             }
 
             /* Move to next buffer if all frames in current buffer has been acked */
-            if (lar >= seq_count - 1) send_done = true;
+            send_done = lar >= seq_count - 1;
         }
 
         cout << "\r" << "[SENT " << (unsigned long long) buffer_num * (unsigned long long) 
