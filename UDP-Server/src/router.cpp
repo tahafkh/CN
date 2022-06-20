@@ -5,35 +5,37 @@
 using namespace std;
 
 int socket_fd;
-struct sockaddr_in send_server_addr, send_client_addr;
-struct sockaddr_in recv_server_addr, recv_client_addr;
+struct sockaddr_in router_addr;
 
 std::queue<std::string> buffer;
 bool read_done = false;
 bool send_done = false;
 
-std::queue<std::string> ack_buffer;
-bool read_ack_done = false;
-bool send_ack_done = false;
+map<int, int> socket_id_fd_map;
+int curr_id = 1;
 
-bool connect_to_station(int port, struct sockaddr_in *server_addr, sockaddr_in *client_addr, int &fd) {
-    memset(&(*server_addr), 0, sizeof(*server_addr)); 
-    memset(&(*client_addr), 0, sizeof(*client_addr)); 
+bool connect_to_station(int port) {
+    memset(&router_addr, 0, sizeof(router_addr)); 
       
-    /* Fill server address data structure */
-    server_addr->sin_family = AF_INET;
-    server_addr->sin_addr.s_addr = INADDR_ANY; 
-    server_addr->sin_port = htons(port);
+    /* Fill router address data structure */
+    router_addr.sin_family = AF_INET;
+    router_addr.sin_addr.s_addr = INADDR_ANY; 
+    router_addr.sin_port = htons(port);
 
     /* Create socket file descriptor */ 
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((socket_fd = socket(AF_INET, SOCK_DGRAM, IP_PROTOCOL)) < 0) {
         cerr << "socket creation failed" << endl;
         return false;
     }
 
     /* Bind socket to server address */
-    if (bind(fd, (const struct sockaddr *)&(*server_addr), sizeof(*server_addr)) < 0) { 
+    if (bind(socket_fd, (const struct sockaddr *)&(router_addr), sizeof(router_addr)) < 0) { 
         cerr << "socket binding failed" << endl;
+        return false;
+    }
+
+    if (listen(socket_fd, TOTAL_STATIONS) < 0) {
+        cerr << "listen failed" << endl;
         return false;
     }
 
@@ -52,9 +54,26 @@ void send_packet() {
             buffer.pop();
             int data_size = strlen(front_data.c_str());
             memcpy(data, front_data.c_str(), data_size);
-            
-            sendto(socket_fd, data, data_size, 0, 
-                    (const struct sockaddr *) &send_server_addr, sizeof(send_server_addr));
+            if (data[IS_ACK_INDEX] == 0x0){  // Is not ack
+
+                uint32_t net_sender_id;
+                memcpy(&net_sender_id, data + 2, 4);
+
+                uint32_t net_seq_num;
+                memcpy(&net_seq_num, data + 6, 4);
+
+                if (send(socket_id_fd_map[net_sender_id], data, data_size, 0) < 0) {
+                    cerr << "send of " << net_seq_num << " failed" << endl;
+                }
+            }
+            else {
+                uint32_t net_seq_num;
+                memcpy(&net_seq_num, data + 6, 4);
+                
+                if (send(socket_id_fd_map[0], data, data_size, 0) < 0) {
+                    cerr << "send ACK of " << net_seq_num << " failed" << endl;
+                }
+            }
         }
         send_done = true;
     }
@@ -62,45 +81,73 @@ void send_packet() {
 
 void recv_packet() {
     read_done = false;
-    char data[MAX_DATA_SIZE];
-    while (!read_done) {
-        /* Receive current buffer from sender */
-        // Router simply forwards the packet, no error detection
-        
-        int data_size;
-        socklen_t client_addr_size;
-        data_size = recvfrom(socket_fd, (char *) data, MAX_FRAME_SIZE, 
-                MSG_WAITALL, (struct sockaddr *) &send_client_addr, 
-                &client_addr_size);
+    int router_addr_len = sizeof(router_addr); 
+	fd_set master_set, working_set;
+	int new_socket;
 
-        bool eot = data[0] == 0x0 ? true : false;
-        buffer.push(data);
+	FD_ZERO(&master_set);
+	int max_sd = socket_fd;
+	FD_SET(socket_fd, &master_set);
 
-        if (eot)
-            read_done = true;
-    }
+	while(!read_done) {
+		working_set = master_set;
+        select(max_sd + 1, &working_set, NULL, NULL, NULL); 
+
+        for (int i = 0; i <= max_sd; i++) {
+            if (FD_ISSET(i, &working_set)) {
+                if (i == socket_fd) { // New station connected
+					if ((new_socket =  accept(socket_fd, (struct sockaddr *)&router_addr, 
+                        (socklen_t*)&router_addr_len)) < 0) {
+                        cerr << "accept failed" << endl;
+					}
+                    socket_id_fd_map[curr_id++] = new_socket;
+                    FD_SET(new_socket, &master_set);
+                    if (new_socket > max_sd)
+                        max_sd = new_socket;
+                }
+                else { // New message from a station
+					char data[MAX_DATA_SIZE] = {0};
+					int temp;
+					if ((temp = recv(i , data, MAX_DATA_SIZE, 0)) < 0) {
+                        cerr << "recv failed" << endl;
+					}
+					else if (temp == 0) { // Station disconnected
+						close(i);
+                        socket_id_fd_map[curr_id++] = -1;
+						FD_CLR(i, &master_set);
+					} else {
+                        bool eot = data[EOT_INDEX] == 0x0 ? true : false;
+                        buffer.push(data);
+
+                        if (eot)
+                            read_done = true;
+					}
+                }
+            }
+        }
+	}
 }
 
 int main(int argc, char * argv[]) {
-    int recv_port;
-    int send_port;
+    int port;
+    // int send_port;
 
-    if (argc == 3) {
-        recv_port = atoi(argv[1]);
-        send_port = atoi(argv[2]);
+    if (argc == 2) {
+        port = atoi(argv[1]);
+        // send_port = atoi(argv[2]);
     } else {
-        cerr << "usage: router <recv_port> <send_port>" << endl;
+        cerr << "usage: router <port>" << endl;
         return 1;
     }
 
-    if (connect_to_station(recv_port, &recv_server_addr, &recv_client_addr, s) == false) {
-        cerr << "connect to receiver failed" << endl;
+    if (connect_to_station(port) == false) {
+        cerr << "router setup failed" << endl;
         return 1;
     }
-    else if (connect_to_station(send_port, &send_server_addr, &send_client_addr) == false) {
-        cerr << "connect to sender failed" << endl;
-        return 1;
-    }
+    // else if (connect_to_station(send_port) == false) {
+    //     cerr << "connect to sender failed" << endl;
+    //     return 1;
+    // }
 
     /* Start thread to keep sending packets to receiver */
     thread recv_thread(send_packet);

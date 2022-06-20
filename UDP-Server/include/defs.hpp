@@ -17,15 +17,28 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+
+// utility libraries
 #include <queue>
+#include <map>
+
+// IP constants
+#define IP_PROTOCOL 0 
+#define IP_ADDRESS "127.0.0.1"
+
+#define TOTAL_STATIONS 20+1
 
 #define MAX_DATA_SIZE 1024
 
+#define IS_ACK_INDEX 0
+
 // |1[IS_ACK]|1[EOT]|4[sender_id]|4[seq_num]|4[data_size]|1024[data]|1[checksum]|
 #define MAX_FRAME_SIZE 1039
+#define EOT_INDEX 1
 
 // |1[IS_ACK]|1[N/ACK]|4[sender_id]|4[seq_num]|1[checksum]|
 #define ACK_SIZE 11
+#define NACK_INDEX 1
 
 // time definitions
 #define current_time chrono::high_resolution_clock::now
