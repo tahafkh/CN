@@ -102,6 +102,11 @@ int main(int argc, char *argv[]) {
         cerr << "unknown host: " << dest_ip << endl;
         return 1;
     }
+    else {
+        cout << "connection found: " << dest_hnet->h_name << endl;
+        cout << "addr type: " << dest_hnet->h_addrtype << endl;
+        cout << "length: " << dest_hnet->h_length << endl;
+    }
 
     memset(&server_addr, 0, sizeof(server_addr)); 
     memset(&client_addr, 0, sizeof(client_addr)); 
@@ -157,7 +162,8 @@ int main(int argc, char *argv[]) {
         if (buffer_size == max_buffer_size) {
             char temp[1];
             int next_buffer_size = fread(temp, 1, 1, file);
-            if (next_buffer_size == 0) read_done = true;
+            if (next_buffer_size == 0) 
+                read_done = true;
             int error = fseek(file, -1, SEEK_CUR);
         } else if (buffer_size < max_buffer_size) {
             read_done = true;
@@ -223,6 +229,8 @@ int main(int argc, char *argv[]) {
                         bool eot = (seq_num == seq_count - 1) && (read_done);
                         frame_size = create_frame(seq_num, frame, data, data_size, eot);
 
+                        cout << "Sending frame " << seq_num << endl;
+                        
                         sendto(socket_fd, frame, frame_size, 0, 
                                 (const struct sockaddr *) &server_addr, sizeof(server_addr));
                         window_sent_mask[i] = true;

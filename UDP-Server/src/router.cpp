@@ -13,6 +13,7 @@ int count = 0;                           // number of packets enqueued since las
 std::queue<std::string> buffer;
 bool read_done = false;
 bool send_done = false;
+mutex buffer_mutex;
 
 map<int, int> socket_id_fd_map;
 int curr_id = 1;
@@ -111,9 +112,11 @@ void send_packet() {
     while (!read_done) {
         send_done = false;
         while (buffer.size()) {
+            buffer_mutex.lock();
             /* Forward the front frame to socket */
             string front_data = buffer.front();
             buffer.pop();
+            buffer_mutex.unlock();
             int data_size = strlen(front_data.c_str());
             memcpy(data, front_data.c_str(), data_size);
             if (data[IS_ACK_INDEX] == 0x0){  // Is not ack
@@ -180,6 +183,7 @@ void recv_packet() {
                         //todo: get_id
 						FD_CLR(i, &master_set);
 					} else {
+                        buffer_mutex.lock();
                         bool eot = data[EOT_INDEX] == 0x0 ? true : false;
                         if (rand()%100 < LOSS_RATE) {
                             cerr << "packet lost" << endl;
@@ -191,6 +195,7 @@ void recv_packet() {
                         
                         buffer.push(data);
                         read_done = eot ? true : false;
+                        buffer_mutex.unlock();
 					}
                 }
             }
