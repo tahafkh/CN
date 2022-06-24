@@ -3,7 +3,8 @@
 using namespace std;
 
 int socket_fd;
-struct sockaddr_in router_addr;
+struct sockaddr_in router_addr, station_addr;
+socklen_t station_addr_size;
 
 // RED variables
 std::time_stamp q_time = current_time(); // Time since the queue was last idle
@@ -15,7 +16,8 @@ bool read_done = false;
 bool send_done = false;
 mutex buffer_mutex;
 
-map<int, int> socket_id_fd_map;
+map<int, pair<sockaddr_in, socklen_t> > forward_table;
+// sender_id : sock_addr_in
 int curr_id = 1;
 
 // argvs
@@ -77,7 +79,19 @@ bool red_check_queue(int max_buffer_size, int q_len) {
     }
 }
 
-bool connect_to_station(int port) {
+// |1[IS_ACK]|4[sender_id]|4[sender_port]|4[file_name_size]|32[file_name]|1[check_sum]|1[is_frame_zero]|
+void connect_to_station(char *frame) {
+    if (frame[0]) // frame sent from receiver
+        forward_table[RECV_ID] = make_pair(station_addr, station_addr_size);
+    else {
+        uint32_t net_sender_id;
+        memcpy(&net_sender_id, frame + 2, 4);
+        // todo: send file name to receiver
+        forward_table[net_sender_id] = make_pair(station_addr, station_addr_size);
+    }
+}
+
+bool setup_connection(int port) {
     memset(&router_addr, 0, sizeof(router_addr)); 
       
     /* Fill router address data structure */
@@ -97,17 +111,12 @@ bool connect_to_station(int port) {
         return false;
     }
 
-    if (listen(socket_fd, TOTAL_STATIONS) < 0) {
-        cerr << "listen failed" << endl;
-        return false;
-    }
-
     return true;
 }
 
 void send_packet() {
 
-    char data[MAX_DATA_SIZE];
+    char frame[MAX_DATA_SIZE];
 
     while (!read_done) {
         send_done = false;
@@ -118,26 +127,27 @@ void send_packet() {
             buffer.pop();
             buffer_mutex.unlock();
             int data_size = strlen(front_data.c_str());
-            memcpy(data, front_data.c_str(), data_size);
-            if (data[IS_ACK_INDEX] == 0x0){  // Is not ack
+            memcpy(frame, front_data.c_str(), data_size);
+            if (frame[IS_ACK_INDEX] == 0x0){  // Is not ack
 
                 uint32_t net_sender_id;
-                memcpy(&net_sender_id, data + 2, 4);
+                memcpy(&net_sender_id, frame + 2, 4);
 
-                uint32_t net_seq_num;
-                memcpy(&net_seq_num, data + 6, 4);
-
-                if (send(socket_id_fd_map[net_sender_id], data, data_size, 0) < 0) {
-                    cerr << "send of " << net_seq_num << " failed" << endl;
-                }
+                // uint32_t net_seq_num;
+                // memcpy(&net_seq_num, frame + 6, 4);
+                
+                // ????
+                sendto(socket_fd, frame, data_size, 0, 
+                    (const struct sockaddr *) &(forward_table[net_sender_id].first),
+                    forward_table[net_sender_id].second);
             }
             else {
-                uint32_t net_seq_num;
-                memcpy(&net_seq_num, data + 6, 4);
+                // uint32_t net_seq_num;
+                // memcpy(&net_seq_num, frame + 6, 4);
                 
-                if (send(socket_id_fd_map[0], data, data_size, 0) < 0) {
-                    cerr << "send ACK of " << net_seq_num << " failed" << endl;
-                }
+                sendto(socket_fd, frame, data_size, 0, 
+                    (const struct sockaddr *) &(forward_table[RECV_ID].first),
+                    forward_table[RECV_ID].second);
             }
         }
         send_done = true;
@@ -148,63 +158,41 @@ void recv_packet() {
     srand (time(NULL));
     read_done = false;
     int router_addr_len = sizeof(router_addr); 
-	fd_set master_set, working_set;
-	int new_socket;
-
-	FD_ZERO(&master_set);
-	int max_sd = socket_fd;
-	FD_SET(socket_fd, &master_set);
 
 	while(!read_done) {
-		working_set = master_set;
-        select(max_sd + 1, &working_set, NULL, NULL, NULL); 
+        char frame[MAX_DATA_SIZE] = {0};
+        int frame_size;
 
-        for (int i = 0; i <= max_sd; i++) {
-            if (FD_ISSET(i, &working_set)) {
-                if (i == socket_fd) { // New station connected
-					if ((new_socket =  accept(socket_fd, (struct sockaddr *)&router_addr, 
-                        (socklen_t*)&router_addr_len)) < 0) {
-                        cerr << "accept failed" << endl;
-					}
-                    socket_id_fd_map[curr_id++] = new_socket;
-                    FD_SET(new_socket, &master_set);
-                    if (new_socket > max_sd)
-                        max_sd = new_socket;
-                }
-                else { // New message from a station
-					char data[MAX_DATA_SIZE] = {0};
-					int temp;
-					if ((temp = recv(i , data, MAX_DATA_SIZE, 0)) < 0) {
-                        cerr << "recv failed" << endl;
-					}
-					else if (temp == 0) { // Station disconnected
-						close(i);
-                        socket_id_fd_map[curr_id++] = -1;
-                        //todo: get_id
-						FD_CLR(i, &master_set);
-					} else {
-                        buffer_mutex.lock();
-                        bool eot = data[EOT_INDEX] == 0x0 ? true : false;
-                        if (rand()%100 < LOSS_RATE) {
-                            cerr << "packet lost" << endl;
-                            continue;
-                        } else if (red_enabled && !red_check_queue(max_buffer_size, buffer.size())) {
-                            cerr << "packet dropped" << endl;
-                            continue;
-                        }
-                        
-                        buffer.push(data);
-                        read_done = eot ? true : false;
-                        buffer_mutex.unlock();
-					}
-                }
-            }
+        // todo: match the frame to the sender
+        memset(&station_addr, 0, sizeof(station_addr)); 
+        frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
+                    MSG_WAITALL, (struct sockaddr *) &station_addr, 
+                    &station_addr_size);
+
+        // check if it's a frame zero
+        if (frame[frame_size-1] == 0x1)
+        {
+            connect_to_station(frame);
+            continue;
         }
+
+        buffer_mutex.lock();
+        bool eot = frame[EOT_INDEX] == 0x0 ? true : false;
+        if (rand()%100 < LOSS_RATE) {
+            cerr << "packet lost" << endl;
+            continue;
+        } else if (red_enabled && !red_check_queue(max_buffer_size, buffer.size())) {
+            cerr << "packet dropped" << endl;
+            continue;
+        }
+        
+        buffer.push(frame);
+        read_done = eot ? true : false;
+        buffer_mutex.unlock();
 	}
 }
 
 int main(int argc, char * argv[]) {
-    // int send_port;
 
     if (argc == 4) {
         port = atoi(argv[1]);
@@ -215,7 +203,7 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
-    if (connect_to_station(port) == false) {
+    if (setup_connection(port) == false) {
         cerr << "router setup failed" << endl;
         return 1;
     }

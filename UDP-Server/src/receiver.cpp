@@ -39,6 +39,7 @@ void create_ack(int sender_id, int seq_num, char *ack, bool error) {
     memcpy(ack + ptr, &net_seq_num, 4);
     ptr += 4;
     ack[ptr] = checksum(ack, ACK_SIZE - (int) 1);
+    ack[ptr+1] = 0x0;
 }
 
 void send_ack() {

@@ -72,8 +72,9 @@ int create_frame(int seq_num, char *frame, char *data, int data_size, bool eot) 
     memcpy(frame + ptr, data, data_size);
     
     frame[data_size + ptr] = checksum(frame, data_size + ptr);
+    frame[data_size + ptr+1] = 0x0;
 
-    return data_size + ptr+1;
+    return data_size + ptr+2;
 }
 
 int main(int argc, char *argv[]) {
@@ -196,7 +197,8 @@ int main(int argc, char *argv[]) {
             if (window_ack_mask[0]) {
                 int shift = 1;
                 for (int i = 1; i < window_len; i++) {
-                    if (!window_ack_mask[i]) break;
+                    if (!window_ack_mask[i]) 
+                        break;
                     shift += 1;
                 }
                 for (int i = 0; i < window_len - shift; i++) {
