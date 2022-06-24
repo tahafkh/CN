@@ -106,6 +106,8 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
+    // send frame zero...
+
     FILE *file = fopen(fname, "wb");
     char buffer[max_buffer_size];
     int buffer_size;

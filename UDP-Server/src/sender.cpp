@@ -140,6 +140,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // send frame zero...
+
     /* Open file to send */
     FILE *file = fopen(fname, "rb");
     char buffer[max_buffer_size];

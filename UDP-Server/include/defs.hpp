@@ -72,6 +72,6 @@ const double maxth_coeff = 3/4; // max threshold coefficient
 
 /* utility functions */
 char checksum(char *frame, int count);
-int create_frame_zero(char *frame, char *filename, int sender_port, int sender_id=0)
+int create_frame_zero(char *frame, char *filename, int sender_port, int sender_id=0);
 
 #endif // DEFS_HPP

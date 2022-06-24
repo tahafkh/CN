@@ -15,6 +15,6 @@ router: $(INCLUDE_DIR)/defs.hpp $(SRC_DIR)/defs.cpp $(INCLUDE_DIR)/router.hpp $(
 sender: $(INCLUDE_DIR)/defs.hpp $(SRC_DIR)/defs.cpp $(INCLUDE_DIR)/sender.hpp $(SRC_DIR)/sender.cpp
 	g++ -std=c++11 -pthread $(SRC_DIR)/defs.cpp $(SRC_DIR)/sender.cpp -o sender
 
-clean: receiver sender router
+clean:
 	rm -f receiver sender router
 	
