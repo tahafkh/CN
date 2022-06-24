@@ -10,6 +10,7 @@
 
 // main libraries
 #include <iostream>
+#include <sstream>
 #include <thread>
 #include <mutex>
 #include <stdio.h>
@@ -25,6 +26,8 @@
 // IP constants
 #define IP_PROTOCOL 0 
 #define IP_ADDRESS "127.0.0.1"
+
+#define ROUTER_PORT 4500
 
 #define TOTAL_STATIONS 20+1
 

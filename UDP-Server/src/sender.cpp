@@ -4,7 +4,9 @@ using namespace std;
 
 int id;
 int socket_fd;
-struct sockaddr_in server_addr, client_addr;
+struct sockaddr_in server_addr, router_addr;
+socklen_t server_addr_size, router_addr_size;
+
 
 int window_len;
 bool *window_ack_mask;
@@ -53,6 +55,31 @@ void listen_ack() {
     }
 }
 
+int create_frame_zero(char* frame, int sender_id, int port, char* file_name, int file_size) {
+    frame[0] = 0x0;
+
+    int ptr = 1;
+    uint32_t net_send_id = htonl(sender_id);
+    memcpy(frame + ptr, &net_send_id, 4);
+    ptr += 4;
+    
+    uint32_t net_seq_num = htonl(port);
+    memcpy(frame + ptr, &net_seq_num, 4);
+    ptr += 4;
+    
+    uint32_t net_data_size = htonl(file_size);
+    memcpy(frame + ptr, &net_data_size, 4);
+    ptr += 4;
+    
+    memcpy(frame + ptr, file_name, file_size);
+    
+    frame[file_size + ptr] = checksum(frame, file_size + ptr);
+    frame[file_size + ptr+1] = 0x1;
+    frame[file_size + ptr+2] = 0x0;
+
+    return file_size + ptr+2;
+}
+
 int create_frame(int seq_num, char *frame, char *data, int data_size, bool eot) {
     frame[0] = 0x0;
     frame[1] = eot ? 0x0 : 0x1;
@@ -79,59 +106,44 @@ int create_frame(int seq_num, char *frame, char *data, int data_size, bool eot) 
 
 int main(int argc, char *argv[]) {
     id = 100;
-    char *dest_ip;
     int dest_port;
     int max_buffer_size;
-    struct hostent *dest_hnet;
     char *fname;
 
-    if (argc == 6) {
+    if (argc == 5) {
         string file_str = SENDER_DIR + string(argv[1]);
         fname = strcpy(new char[file_str.length() + 1], file_str.c_str());
         window_len = atoi(argv[2]);
         max_buffer_size = MAX_DATA_SIZE * (int) atoi(argv[3]);
-        dest_ip = argv[4];
-        dest_port = atoi(argv[5]);
+        dest_port = atoi(argv[4]);
     } else {
-        cerr << "usage: sender <filename> <window_len> <buffer_size> <destination_ip> <destination_port>" << endl;
+        cerr << "usage: sender <filename> <window_len> <buffer_size> <destination_port>" << endl;
         return 1; 
     }
 
-    /* Get hostnet from server hostname or IP address */ 
-    dest_hnet = gethostbyname(dest_ip);
-    if (!dest_hnet) {
-        cerr << "unknown host: " << dest_ip << endl;
-        return 1;
-    }
-    else {
-        cout << "connection found: " << dest_hnet->h_name << endl;
-        cout << "addr type: " << dest_hnet->h_addrtype << endl;
-        cout << "length: " << dest_hnet->h_length << endl;
-    }
-
     memset(&server_addr, 0, sizeof(server_addr)); 
-    memset(&client_addr, 0, sizeof(client_addr)); 
+    memset(&router_addr, 0, sizeof(router_addr)); 
 
     /* Fill server address data structure */
     server_addr.sin_family = AF_INET;
-    bcopy(dest_hnet->h_addr, (char *)&server_addr.sin_addr, dest_hnet->h_length); 
+    server_addr.sin_addr.s_addr = INADDR_ANY; 
     server_addr.sin_port = htons(dest_port);
 
     /* Fill client address data structure */
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_addr.s_addr = INADDR_ANY; 
-    client_addr.sin_port = htons(0);
+    router_addr.sin_family = AF_INET;
+    router_addr.sin_addr.s_addr = INADDR_ANY; 
+    router_addr.sin_port = htons(ROUTER_PORT);
 
     /* Create socket file descriptor */ 
     if ((socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        cerr << "socket creation failed" << endl;
+        perror("socket");
         return 1;
     }
 
     /* Bind socket to client address */
-    if (::bind(socket_fd, (const struct sockaddr *)&client_addr, 
-            sizeof(client_addr)) < 0) { 
-        cerr << "socket binding failed" << endl;
+    if (::bind(socket_fd, (const struct sockaddr *)&server_addr, 
+            sizeof(server_addr)) < 0) { 
+        perror("bind");
         return 1;
     }
     
@@ -139,8 +151,18 @@ int main(int argc, char *argv[]) {
         cerr << "file doesn't exist: " << fname << endl;
         return 1;
     }
+    
+    char frame_zero[MAX_FRAME_SIZE];
+    memset(&frame_zero, 0, strlen(frame_zero));
 
-    // send frame zero...
+    create_frame_zero(frame_zero, id, dest_port, fname, strlen(fname));
+
+    int sent_size = sendto(socket_fd, &frame_zero, sizeof(frame_zero), 0, 
+            (struct sockaddr *) &router_addr, sizeof(router_addr));
+    if (sent_size < 0) {
+        perror("sendto");
+        exit(1);
+    }
 
     /* Open file to send */
     FILE *file = fopen(fname, "rb");
@@ -149,14 +171,13 @@ int main(int argc, char *argv[]) {
 
     /* Start thread to listen for ack */
     thread recv_thread(listen_ack);
-
     char frame[MAX_FRAME_SIZE];
     char data[MAX_DATA_SIZE];
     int frame_size;
     int data_size;
 
     /* Send file */
-    bool read_done = false;
+    bool read_done = true;
     int buffer_num = 0;
     while (!read_done) {
 

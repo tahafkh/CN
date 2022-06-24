@@ -3,8 +3,8 @@
 using namespace std;
 
 int socket_fd;
-struct sockaddr_in router_addr, station_addr;
-socklen_t station_addr_size;
+struct sockaddr_in router_addr, station_addr, sender_addr, recver_addr;
+socklen_t station_addr_size, sender_addr_size, recver_addr_size;
 
 // RED variables
 std::time_stamp q_time = current_time(); // Time since the queue was last idle
@@ -80,11 +80,13 @@ bool red_check_queue(int max_buffer_size, int q_len) {
 }
 
 void connect_to_station(char *frame) {
-    if (frame[0]) // frame sent from receiver
+    if (frame[0]){ // frame sent from receiver
+        cout<< "what" << endl; 
         forward_table[RECV_ID] = make_pair(station_addr, station_addr_size);
-    else { // frame sent from sender
+    } else { // frame sent from sender
         uint32_t net_sender_id;
         memcpy(&net_sender_id, frame + 2, 4);
+
         // todo: send file name to receiver
         forward_table[net_sender_id] = make_pair(station_addr, station_addr_size);
     }
@@ -100,13 +102,13 @@ bool setup_connection(int port) {
 
     /* Create socket file descriptor */ 
     if ((socket_fd = socket(AF_INET, SOCK_DGRAM, IP_PROTOCOL)) < 0) {
-        cerr << "socket creation failed" << endl;
+        perror("socket");
         return false;
     }
 
     /* Bind socket to server address */
     if (bind(socket_fd, (const struct sockaddr *)&(router_addr), sizeof(router_addr)) < 0) { 
-        cerr << "socket binding failed" << endl;
+        perror("bind");
         return false;
     }
 
@@ -154,21 +156,22 @@ void recv_packet() {
 
 	while(!read_done) {
         char frame[MAX_DATA_SIZE] = {0};
-        int frame_size;
-
-        // todo: match the frame to the sender
-        memset(&station_addr, 0, sizeof(station_addr)); 
-        frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
+        int frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
                     MSG_WAITALL, (struct sockaddr *) &station_addr, 
                     &station_addr_size);
+        if (frame_size < 0) {
+            perror("recvfrom");
+            exit(1);
+        }
 
         // check if it's a frame zero
-        if (frame[frame_size-1] == 0x1)
+        if (frame[frame_size - 1] = 0x1)
         {
             connect_to_station(frame);
             continue;
         }
 
+        // frame not zero
         buffer_mutex.lock();
         bool eot = frame[EOT_INDEX] == 0x0 ? true : false;
         if (rand()%100 < LOSS_RATE) {
@@ -200,18 +203,15 @@ int main(int argc, char * argv[]) {
         cerr << "router setup failed" << endl;
         return 1;
     }
+    cout << "Router is listening..." << endl;
 
-    /* Start thread to keep sending packets to receiver */
-    thread recv_thread(send_packet);
-
-    /* Start thread to keep receiving packets from sender */
-    thread send_thread(recv_packet);
-
-    if (read_done && send_done) {
-        cout << "Finishing up send and receive" << endl;
-        recv_thread.join();
-        send_thread.join();
+    while(!read_done || !send_done) {
+        recv_packet();
+        send_packet();
+        sleep_for(2000);
     }
+
+    cout << "Finishing up send and receive" << endl;
     cout << "Done" << endl;
 
     return 0;
