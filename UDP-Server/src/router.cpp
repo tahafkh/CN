@@ -79,11 +79,10 @@ bool red_check_queue(int max_buffer_size, int q_len) {
     }
 }
 
-// |1[IS_ACK]|4[sender_id]|4[sender_port]|4[file_name_size]|32[file_name]|1[check_sum]|1[is_frame_zero]|
 void connect_to_station(char *frame) {
     if (frame[0]) // frame sent from receiver
         forward_table[RECV_ID] = make_pair(station_addr, station_addr_size);
-    else {
+    else { // frame sent from sender
         uint32_t net_sender_id;
         memcpy(&net_sender_id, frame + 2, 4);
         // todo: send file name to receiver
@@ -133,18 +132,12 @@ void send_packet() {
                 uint32_t net_sender_id;
                 memcpy(&net_sender_id, frame + 2, 4);
 
-                // uint32_t net_seq_num;
-                // memcpy(&net_seq_num, frame + 6, 4);
-                
                 // ????
                 sendto(socket_fd, frame, data_size, 0, 
                     (const struct sockaddr *) &(forward_table[net_sender_id].first),
                     forward_table[net_sender_id].second);
             }
             else {
-                // uint32_t net_seq_num;
-                // memcpy(&net_seq_num, frame + 6, 4);
-                
                 sendto(socket_fd, frame, data_size, 0, 
                     (const struct sockaddr *) &(forward_table[RECV_ID].first),
                     forward_table[RECV_ID].second);

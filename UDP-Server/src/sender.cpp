@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* Get hostnet from server hostname or IP address */ 
-    dest_hnet = gethostbyname(dest_ip); 
+    dest_hnet = gethostbyname(dest_ip);
     if (!dest_hnet) {
         cerr << "unknown host: " << dest_ip << endl;
         return 1;

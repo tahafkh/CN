@@ -40,7 +40,7 @@
 #define RECV_ID 0
 
 // |1[IS_ACK]|1[EOT]|4[sender_id]|4[seq_num]|4[data_size]|1024[data]|1[checksum]|1[is_frame_zero]|
-#define MAX_FRAME_SIZE 1040
+#define MAX_FRAME_SIZE 16+MAX_DATA_SIZE
 #define EOT_INDEX 1
 
 // |1[IS_ACK]|1[N/ACK]|4[sender_id]|4[seq_num]|1[checksum]|1[is_frame_zero]|
