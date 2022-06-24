@@ -81,13 +81,12 @@ bool red_check_queue(int max_buffer_size, int q_len) {
 
 void connect_to_station(char *frame) {
     if (frame[0]){ // frame sent from receiver
-        cout<< "what" << endl; 
+    
         forward_table[RECV_ID] = make_pair(station_addr, station_addr_size);
     } else { // frame sent from sender
         uint32_t net_sender_id;
         memcpy(&net_sender_id, frame + 2, 4);
 
-        // todo: send file name to receiver
         forward_table[net_sender_id] = make_pair(station_addr, station_addr_size);
     }
 }

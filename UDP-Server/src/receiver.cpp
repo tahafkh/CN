@@ -123,10 +123,12 @@ int main(int argc, char * argv[]) {
         cerr << "socket binding failed" << endl;
         return 1;
     }
+    //create frame zero
     char frame_zero[MAX_FRAME_SIZE];
     memset(&frame_zero, 0, sizeof(frame_zero));
     create_frame_zero(frame_zero, port);
 
+    //send frame zero
     int sent_size = sendto(socket_fd, &frame_zero, sizeof(frame_zero), 0, 
             (struct sockaddr *) &router_addr, sizeof(router_addr));
     if (sent_size < 0) {
@@ -134,7 +136,7 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
-    exit(1);
+    //exit(1) // works till here 
 
     FILE *file = fopen(fname, "wb");
     char buffer[max_buffer_size];

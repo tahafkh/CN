@@ -164,6 +164,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    //exit(1) //works till here
+
     /* Open file to send */
     FILE *file = fopen(fname, "rb");
     char buffer[max_buffer_size];
@@ -177,7 +179,7 @@ int main(int argc, char *argv[]) {
     int data_size;
 
     /* Send file */
-    bool read_done = true;
+    bool read_done = false;
     int buffer_num = 0;
     while (!read_done) {
 
@@ -279,7 +281,6 @@ int main(int argc, char *argv[]) {
     fclose(file);
     delete [] window_ack_mask;
     delete [] window_sent_time;
-    recv_thread.detach();
 
     cout << "\nGoodbye" << endl;
     return 0;
