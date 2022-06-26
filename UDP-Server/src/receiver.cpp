@@ -3,55 +3,50 @@
 using namespace std;
 
 int socket_fd;
-struct sockaddr_in server_addr, router_addr;
+struct sockaddr_in receiver_addr, router_addr;
 
-bool read_frame(int *sender_id, int *seq_num, char *data, int *data_size, bool *eot, char *frame) {
+bool read_frame(int *sender_port, int *seq_num, char *data, int *data_size, bool *eot, char *frame) {
     *eot = frame[1] == 0x0 ? true : false; // first byte is ISACK
     int ptr = 2;
-    uint32_t net_sender_id;
-    memcpy(&net_sender_id, frame + ptr, 4);
+    uint32_t net_sender_port;
+    memcpy(&net_sender_port, frame + ptr, 4);
     ptr += 4;
-    *sender_id = net_sender_id;
+    *sender_port = net_sender_port;
+
+    // Receiver port
+    ptr += 4;
 
     uint32_t net_seq_num;
     memcpy(&net_seq_num, frame + ptr, 4);
     ptr += 4;
-    *seq_num = ntohl(net_seq_num);
+    *seq_num = net_seq_num;
 
     uint32_t net_data_size;
     memcpy(&net_data_size, frame + ptr, 4);
     ptr += 4;
-    *data_size = ntohl(net_data_size);
+    *data_size = net_data_size;
 
     memcpy(data, frame + ptr, *data_size);
 
     return frame[*data_size + ptr] != checksum(frame, *data_size + ptr);
 }
 
-int create_frame_zero(char* frame, int dest_port) {
-    frame[0] = 0x1;
-
-    int ptr = 1;
-    
-    uint32_t port = htonl(dest_port);
-    memcpy(frame + ptr, &port, 4);
-    ptr += 4;
-    
-    frame[ptr+1] = 0x1;
-    frame[ptr+2] = 0x0;
-
-    return ptr+2;
-}
-void create_ack(int sender_id, int seq_num, char *ack, bool error) {
+void create_ack(int sender_port, int seq_num, char *ack, bool error) {
     ack[0] = 0x1;
     ack[1] = error ? 0x0 : 0x1;
     int ptr = 2;
-    uint32_t net_sender_id = htonl(sender_id);
-    memcpy(ack + ptr, &net_sender_id, 4);
+    uint32_t net_sender_port = sender_port;
+    memcpy(ack + ptr, &net_sender_port, 4);
     ptr += 4;
-    uint32_t net_seq_num = htonl(seq_num);
+
+    uint32_t net_receiver_port = RECEIVER_PORT;
+    memcpy(ack + ptr, &net_receiver_port, 4);
+    ptr += 4;
+
+    uint32_t net_seq_num = seq_num;
     memcpy(ack + ptr, &net_seq_num, 4);
     ptr += 4;
+
     ack[ptr] = checksum(ack, ACK_SIZE - (int) 1);
     ack[ptr+1] = 0x0;
 }
@@ -64,7 +59,7 @@ void send_ack() {
     int data_size;
     socklen_t router_addr_size;
     
-    int sender_id;
+    int sender_port;
     int recv_seq_num;
     bool frame_error;
     bool eot;
@@ -74,9 +69,9 @@ void send_ack() {
         frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
                 MSG_WAITALL, (struct sockaddr *) &router_addr, 
                 &router_addr_size);
-        frame_error = read_frame(&sender_id, &recv_seq_num, data, &data_size, &eot, frame);
+        frame_error = read_frame(&sender_port, &recv_seq_num, data, &data_size, &eot, frame);
 
-        create_ack(sender_id, recv_seq_num, ack, frame_error);
+        create_ack(sender_port, recv_seq_num, ack, frame_error);
         sendto(socket_fd, ack, ACK_SIZE, 0, 
                 (const struct sockaddr *) &router_addr, router_addr_size);
     }
@@ -99,13 +94,13 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
-    memset(&server_addr, 0, sizeof(server_addr)); 
+    memset(&receiver_addr, 0, sizeof(receiver_addr)); 
     memset(&router_addr, 0, sizeof(router_addr)); 
       
     /* Fill server address data structure */
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY; 
-    server_addr.sin_port = htons(port);
+    receiver_addr.sin_family = AF_INET;
+    receiver_addr.sin_addr.s_addr = INADDR_ANY; 
+    receiver_addr.sin_port = htons(port);
 
     router_addr.sin_family = AF_INET;
     router_addr.sin_addr.s_addr = INADDR_ANY; 
@@ -118,25 +113,11 @@ int main(int argc, char * argv[]) {
     }
 
     /* Bind socket to server address */
-    if (::bind(socket_fd, (const struct sockaddr *)&server_addr, 
-            sizeof(server_addr)) < 0) { 
-        cerr << "socket binding failed" << endl;
+    if (::bind(socket_fd, (const struct sockaddr *)&receiver_addr, 
+            sizeof(receiver_addr)) < 0) { 
+        perror("socket binding failed");
         return 1;
     }
-    //create frame zero
-    char frame_zero[MAX_FRAME_SIZE];
-    memset(&frame_zero, 0, sizeof(frame_zero));
-    create_frame_zero(frame_zero, port);
-
-    //send frame zero
-    int sent_size = sendto(socket_fd, &frame_zero, sizeof(frame_zero), 0, 
-            (struct sockaddr *) &router_addr, sizeof(router_addr));
-    if (sent_size < 0) {
-        perror("sendto");
-        exit(1);
-    }
-
-    //exit(1) // works till here 
 
     FILE *file = fopen(fname, "wb");
     char buffer[max_buffer_size];
@@ -149,7 +130,7 @@ int main(int argc, char * argv[]) {
     int frame_size;
     int data_size;
     int lfr, laf;
-    int sender_id;
+    int sender_port;
     int recv_seq_num;
     bool eot;
     bool frame_error;
@@ -175,9 +156,11 @@ int main(int argc, char * argv[]) {
             frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
                     MSG_WAITALL, (struct sockaddr *) &router_addr, 
                     &router_addr_size);
-            frame_error = read_frame(&sender_id, &recv_seq_num, data, &data_size, &eot, frame);
+            frame_error = read_frame(&sender_port, &recv_seq_num, data, &data_size, &eot, frame);
 
-            create_ack(sender_id, recv_seq_num, ack, frame_error);
+            cout << "Received frame " << recv_seq_num << endl;
+
+            create_ack(sender_port, recv_seq_num, ack, frame_error);
             sendto(socket_fd, ack, ACK_SIZE, 0, 
                     (const struct sockaddr *) &router_addr, router_addr_size);
 
