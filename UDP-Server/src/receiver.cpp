@@ -2,6 +2,8 @@
 
 using namespace std;
 
+ofstream logger = ofstream("./logs/receiver.log");
+
 int socket_fd;
 struct sockaddr_in receiver_addr, router_addr;
 
@@ -84,7 +86,8 @@ int main(int argc, char * argv[]) {
         window_len = (int) atoi(argv[2]);
         max_buffer_size = MAX_DATA_SIZE * (int) atoi(argv[3]);
     } else {
-        cerr << "usage: receiver <filename> <window_size> <buffer_size>" << endl;
+        logger << argc << endl;
+        logger << "usage: receiver <filename> <window_size> <buffer_size>" << endl;
         return 1;
     }
 
@@ -102,7 +105,7 @@ int main(int argc, char * argv[]) {
 
     /* Create socket file descriptor */ 
     if ((socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        cerr << "socket creation failed" << endl;
+        logger << "socket creation failed" << endl;
         return 1;
     }
 
@@ -152,7 +155,7 @@ int main(int argc, char * argv[]) {
                     &router_addr_size);
             frame_error = read_frame(&sender_port, &recv_seq_num, data, &data_size, &eot, frame);
 
-            cout << "Received frame " << recv_seq_num << endl;
+            logger<< "Received frame " << recv_seq_num << endl;
 
             create_ack(sender_port, recv_seq_num, ack, frame_error);
             int res = sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM,
@@ -160,7 +163,7 @@ int main(int argc, char * argv[]) {
             if (res < 0)
                 perror("send failed");
             else
-                cout << "Sent ACK of " << recv_seq_num << " to " << ntohs(router_addr.sin_port) << endl;
+                logger<< "Sent ACK of " << recv_seq_num << " to " << ntohs(router_addr.sin_port) << endl;
 
             if (recv_seq_num <= laf) {
                 if (!frame_error) {
@@ -203,10 +206,11 @@ int main(int argc, char * argv[]) {
             if (lfr >= recv_seq_count - 1) break;
         }
 
-        cout << "\r" << "[RECEIVED " << (unsigned long long) buffer_num * (unsigned long long) 
+        logger<< "\r" << "[RECEIVED " << (unsigned long long) buffer_num * (unsigned long long) 
                 max_buffer_size + (unsigned long long) buffer_size << " BYTES]" << flush;
         fwrite(buffer, 1, buffer_size, file);
         buffer_num += 1;
+        break;
     }
 
     fclose(file);
@@ -215,6 +219,5 @@ int main(int argc, char * argv[]) {
     thread stdby_thread(send_ack);
     stdby_thread.join();
 
-    cout << "\nAll done :)" << endl;
     return 0;
 }

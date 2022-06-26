@@ -53,14 +53,7 @@ todo: code the shell script
 <p>
     The router is a simple UDP server that receives packets from the sender and forwards them to the receiver. In return, the receiver sends an ACK message which is then forwarded to the sender.<br>
     The router needs a forwarding table in order to forward messages from senders to receiver vice-versa.<br>
-    The forwarding table is filled using fram_zero messages:<br>
-        These messages are the first message that each station sends to the router.
-        The frame format is as follows:<br>
-            |1[FROM_RECV]|4[sender_id]|4[sender_port]|4[file_name_size]|32[file_name]|1[check_sum]|1[is_frame_zero]|
-        "FROM_RECV" indicates wether the frame is from a sender or a receiver.
-        "sender_id" is used for the forwarding table map.
-        "sender_port" is not needed.
-        "file_name_size" and "file_name" are used to make a file for the receiver so that it can write the recieved data on the correct file.
+    The forwarding table is filled using fram messages<br>
     The router has a buffer that stores the packets that are received from the senders/receiver.<br>
     ACK messages and packets are distinguished by the first byte of each message.<br>
     If the first (ISACK) byte is 0, it's a packet, otherwise it's an ACK message.<br>

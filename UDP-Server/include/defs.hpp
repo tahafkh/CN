@@ -11,6 +11,7 @@
 // main libraries
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <thread>
 #include <mutex>
 #include <stdio.h>
@@ -28,7 +29,7 @@
 #define IP_PROTOCOL 0 
 #define IP_ADDRESS "127.0.0.1"
 
-#define ROUTER_PORT 4554
+#define ROUTER_PORT 8079
 #define RECEIVER_PORT 8000
 
 #define TOTAL_STATIONS 20+1
@@ -39,12 +40,12 @@
 
 #define LOSS_RATE 10
 
-// |1[IS_ACK]|1[EOT]|4[sender_port]|4[receiver_port]|4[seq_num]|4[data_size]|1024[data]|1[checksum]|1[is_frame_zero]|
-#define MAX_FRAME_SIZE 20+MAX_DATA_SIZE
+// |1[IS_ACK]|1[EOT]|4[sender_port]|4[receiver_port]|4[seq_num]|4[data_size]|1024[data]|1[checksum]|
+#define MAX_FRAME_SIZE 19+MAX_DATA_SIZE
 #define EOT_INDEX 1
 
-// |1[IS_ACK]|1[N/ACK]|4[sender_port]|4[receiver_port]|4[seq_num]|4[REQ_SEQ]|1[checksum]|1[is_frame_zero]|
-#define ACK_SIZE 20
+// |1[IS_ACK]|1[N/ACK]|4[sender_port]|4[receiver_port]|4[seq_num]|4[REQ_SEQ]|1[checksum]|
+#define ACK_SIZE 19
 #define NACK_INDEX 1
 
 #define SEQ_INDEX 10
@@ -65,10 +66,10 @@
 typedef unsigned char byte;
 
 /* Router RED constants */
-const double wq = 0.002; // weight associated with the current router queue length
+const double wq = 0.8; // weight associated with the current router queue length
 const double maxp = 0.5; // maximum drop probability
-const double minth_coeff = 1/4; // min threshold coefficient
-const double maxth_coeff = 3/4; // max threshold coefficient
+const double minth_coeff = 0.25; // min threshold coefficient
+const double maxth_coeff = 0.75; // max threshold coefficient
 
 /* utility functions */
 char checksum(char *frame, int count);

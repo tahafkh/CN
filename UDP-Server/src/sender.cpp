@@ -2,6 +2,8 @@
 
 using namespace std;
 
+ofstream logger;
+
 int socket_fd;
 struct sockaddr_in sender_addr, router_addr;
 socklen_t router_addr_size;
@@ -40,7 +42,7 @@ void listen_ack() {
                 MSG_WAITALL, (struct sockaddr *) &new_addr, 
                 &new_addr_size);
         ack_error = read_ack(&ack_seq_num, &ack_neg, ack);
-        cout << "Received ACK: " << ack_seq_num << endl;
+        logger << "Received ACK: " << ack_seq_num << endl;
 
         window_info_mutex.lock();
 
@@ -97,8 +99,9 @@ int main(int argc, char *argv[]) {
         window_len = atoi(argv[2]);
         max_buffer_size = MAX_DATA_SIZE * (int) atoi(argv[3]);
         sender_port = atoi(argv[4]);
+        logger = ofstream("./logs/sender"+to_string(sender_port-8080)+".log");
     } else {
-        cerr << "usage: sender <filename> <window_len> <buffer_size> <destination_port>" << endl;
+        cerr << "usage: sender <filename> <window_len> <buffer_size> <sender_port>" << endl;
         return 1; 
     }
 
@@ -129,9 +132,11 @@ int main(int argc, char *argv[]) {
     }
     
     if (access(fname, F_OK) == -1) {
-        cerr << "file doesn't exist: " << fname << endl;
+        logger << "file doesn't exist: " << fname << endl;
         return 1;
     }
+
+    logger << "Sender started with port " << sender_port << endl;
     
     /* Open file to send */
     FILE *file = fopen(fname, "rb");
@@ -223,7 +228,7 @@ int main(int argc, char *argv[]) {
                         bool eot = (seq_num == seq_count - 1) && (read_done);
                         frame_size = create_frame(seq_num, frame, data, data_size, eot);
 
-                        cout << "Sending frame " << seq_num << " with size " << frame_size << endl;
+                        logger << "Sending frame " << seq_num << " with size " << frame_size << endl;
                         
                         sendto(socket_fd, frame, frame_size, MSG_CONFIRM,
                                 (struct sockaddr *) &router_addr, sizeof(router_addr));
@@ -239,7 +244,7 @@ int main(int argc, char *argv[]) {
             send_done = lar >= seq_count - 1;
         }
 
-        cout << "\r" << "[SENT " << (unsigned long long) buffer_num * (unsigned long long) 
+        logger << "\r" << "[SENT " << (unsigned long long) buffer_num * (unsigned long long) 
                 max_buffer_size + (unsigned long long) buffer_size << " BYTES]" << flush;
         buffer_num += 1;
         if (read_done) break;
@@ -249,6 +254,6 @@ int main(int argc, char *argv[]) {
     delete [] window_ack_mask;
     delete [] window_sent_time;
 
-    cout << "\nGoodbye" << endl;
+    logger << "\nGoodbye" << endl;
     return 0;
 }
