@@ -6,34 +6,28 @@ int socket_fd;
 struct sockaddr_in receiver_addr, router_addr;
 
 bool read_frame(int *sender_port, int *seq_num, char *data, int *data_size, bool *eot, char *frame) {
-    *eot = frame[1] == 0x0 ? true : false; // first byte is ISACK
+    *eot = frame[1] == 0x1; // first byte is ISACK
     int ptr = 2;
-    uint32_t net_sender_port;
-    memcpy(&net_sender_port, frame + ptr, 4);
+    memcpy(sender_port, frame + ptr, 4);
     ptr += 4;
-    *sender_port = net_sender_port;
 
     // Receiver port
     ptr += 4;
 
-    uint32_t net_seq_num;
-    memcpy(&net_seq_num, frame + ptr, 4);
+    memcpy(seq_num, frame + ptr, 4);
     ptr += 4;
-    *seq_num = net_seq_num;
 
-    uint32_t net_data_size;
-    memcpy(&net_data_size, frame + ptr, 4);
+    memcpy(data_size, frame + ptr, 4);
     ptr += 4;
-    *data_size = net_data_size;
 
     memcpy(data, frame + ptr, *data_size);
 
-    return frame[*data_size + ptr] != checksum(frame, *data_size + ptr);
+    return false;
 }
 
 void create_ack(int sender_port, int seq_num, char *ack, bool error) {
     ack[0] = 0x1;
-    ack[1] = error ? 0x0 : 0x1;
+    ack[1] = error ? 0x1 : 0x0;
     int ptr = 2;
     uint32_t net_sender_port = sender_port;
     memcpy(ack + ptr, &net_sender_port, 4);
@@ -66,31 +60,31 @@ void send_ack() {
 
     /* Listen for frames and send ack */
     while (true) {
-        frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
+        recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE,
                 MSG_WAITALL, (struct sockaddr *) &router_addr, 
                 &router_addr_size);
         frame_error = read_frame(&sender_port, &recv_seq_num, data, &data_size, &eot, frame);
 
         create_ack(sender_port, recv_seq_num, ack, frame_error);
-        sendto(socket_fd, ack, ACK_SIZE, 0, 
-                (const struct sockaddr *) &router_addr, router_addr_size);
+        int res = sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM,
+               (struct sockaddr *) &router_addr, sizeof(router_addr));
+        if (res < 0)
+            perror("send failed");
     }
 }
 
 int main(int argc, char * argv[]) {
-    int port;
     int window_len;
     int max_buffer_size;
     char *fname;
 
-    if (argc == 5) {
+    if (argc == 4) {
         string file_str = RECEIVER_DIR + string(argv[1]);
         fname = strcpy(new char[file_str.length() + 1], file_str.c_str());        
         window_len = (int) atoi(argv[2]);
         max_buffer_size = MAX_DATA_SIZE * (int) atoi(argv[3]);
-        port = atoi(argv[4]);
     } else {
-        cerr << "usage: receiver <filename> <window_size> <buffer_size> <port>" << endl;
+        cerr << "usage: receiver <filename> <window_size> <buffer_size>" << endl;
         return 1;
     }
 
@@ -100,7 +94,7 @@ int main(int argc, char * argv[]) {
     /* Fill server address data structure */
     receiver_addr.sin_family = AF_INET;
     receiver_addr.sin_addr.s_addr = INADDR_ANY; 
-    receiver_addr.sin_port = htons(port);
+    receiver_addr.sin_port = htons(RECEIVER_PORT);
 
     router_addr.sin_family = AF_INET;
     router_addr.sin_addr.s_addr = INADDR_ANY; 
@@ -153,7 +147,7 @@ int main(int argc, char * argv[]) {
         /* Receive current buffer with sliding window */
         while (true) {
             socklen_t router_addr_size;
-            frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
+            recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE,
                     MSG_WAITALL, (struct sockaddr *) &router_addr, 
                     &router_addr_size);
             frame_error = read_frame(&sender_port, &recv_seq_num, data, &data_size, &eot, frame);
@@ -161,8 +155,12 @@ int main(int argc, char * argv[]) {
             cout << "Received frame " << recv_seq_num << endl;
 
             create_ack(sender_port, recv_seq_num, ack, frame_error);
-            sendto(socket_fd, ack, ACK_SIZE, 0, 
-                    (const struct sockaddr *) &router_addr, router_addr_size);
+            int res = sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM,
+                             (struct sockaddr *) &router_addr, sizeof(router_addr) );
+            if (res < 0)
+                perror("send failed");
+            else
+                cout << "Sent ACK of " << recv_seq_num << " to " << ntohs(router_addr.sin_port) << endl;
 
             if (recv_seq_num <= laf) {
                 if (!frame_error) {
@@ -215,18 +213,7 @@ int main(int argc, char * argv[]) {
 
     /* Start thread to keep sending requested ack to sender for 3 seconds */
     thread stdby_thread(send_ack);
-    time_stamp start_time = current_time();
-    while (elapsed_time(current_time(), start_time) < STDBY_TIME) {
-        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS | ]" << flush;
-        sleep_for(100);
-        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS / ]" << flush;
-        sleep_for(100);
-        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS - ]" << flush;
-        sleep_for(100);
-        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS \\ ]" << flush;
-        sleep_for(100);
-    }
-    stdby_thread.detach();
+    stdby_thread.join();
 
     cout << "\nAll done :)" << endl;
     return 0;

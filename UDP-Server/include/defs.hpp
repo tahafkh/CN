@@ -43,9 +43,11 @@
 #define MAX_FRAME_SIZE 20+MAX_DATA_SIZE
 #define EOT_INDEX 1
 
-// |1[IS_ACK]|1[N/ACK]|4[sender_port]|4[receiver_port]|4[seq_num]|1[checksum]|1[is_frame_zero]|
-#define ACK_SIZE 16
+// |1[IS_ACK]|1[N/ACK]|4[sender_port]|4[receiver_port]|4[seq_num]|4[REQ_SEQ]|1[checksum]|1[is_frame_zero]|
+#define ACK_SIZE 20
 #define NACK_INDEX 1
+
+#define SEQ_INDEX 10
 
 // time definitions
 #define current_time chrono::high_resolution_clock::now
@@ -55,8 +57,6 @@
 
 // timeout threshold
 #define TIMEOUT 50
-
-#define STDBY_TIME 3000
 
 // sender/receiver file directories
 #define SENDER_DIR "sender_files/"

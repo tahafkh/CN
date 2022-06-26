@@ -15,13 +15,14 @@ time_stamp TMIN = current_time();
 mutex window_info_mutex;
 
 bool read_ack(int *seq_num, bool *neg, char *ack) {
-    *neg = ack[1] == 0x0; // first byte is ISACK
+    *neg = ack[1] == 0x1; // first byte is ISACK
 
     uint32_t net_seq_num;
     memcpy(&net_seq_num, ack + 10, 4);
     *seq_num = net_seq_num;
 
-    return ack[ACK_SIZE-1] != checksum(ack, ACK_SIZE - (int) 1);
+    // return ack[ACK_SIZE-1] != checksum(ack, ACK_SIZE - (int) 1);
+    return false;
 }
 
 void listen_ack() {
@@ -35,10 +36,9 @@ void listen_ack() {
     while (true) {
         sockaddr_in new_addr{};
         socklen_t new_addr_size;
-        ack_size = recvfrom(socket_fd, (char *)ack, ACK_SIZE, 
+        recvfrom(socket_fd, (char *)ack, ACK_SIZE,
                 MSG_WAITALL, (struct sockaddr *) &new_addr, 
                 &new_addr_size);
-        cout << htons(new_addr.sin_port) << " " << ack_size << endl;
         ack_error = read_ack(&ack_seq_num, &ack_neg, ack);
         cout << "Received ACK: " << ack_seq_num << endl;
 
@@ -58,10 +58,10 @@ void listen_ack() {
 
 int create_frame(int seq_num, char *frame, char *data, int data_size, bool eot) {
     frame[0] = 0x0;
-    frame[1] = eot ? 0x0 : 0x1;
+    frame[1] = eot ? 0x1 : 0x0;
     int ptr = 2;
     // Set src port
-    uint32_t net_send_port = sender_addr.sin_port;
+    uint32_t net_send_port = ntohs(sender_addr.sin_port);
     memcpy(frame + ptr, &net_send_port, 4);
     ptr += 4;
 
@@ -225,8 +225,8 @@ int main(int argc, char *argv[]) {
 
                         cout << "Sending frame " << seq_num << " with size " << frame_size << endl;
                         
-                        sendto(socket_fd, frame, frame_size, 0, 
-                                (const struct sockaddr *) &router_addr, sizeof(router_addr));
+                        sendto(socket_fd, frame, frame_size, MSG_CONFIRM,
+                                (struct sockaddr *) &router_addr, sizeof(router_addr));
                         window_sent_mask[i] = true;
                         window_sent_time[i] = current_time();
                     }
