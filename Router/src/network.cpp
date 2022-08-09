@@ -243,9 +243,11 @@ void Network::lsrp_route(int src_node)
         distance[*itr] = INT16_MAX;
 
     distance[src_node] = 0;
+    int calc_time;
 
     while (sptSet.size() != this->nodes.size())
     {
+        auto start = chrono::high_resolution_clock::now();
         int u = findClosestNode(distance, sptSet);
         if (u == -1)
         {
@@ -263,10 +265,12 @@ void Network::lsrp_route(int src_node)
                 predecessor[v] = u;
             }
         }
+        auto end = chrono::high_resolution_clock::now();
+        calc_time += chrono::duration_cast<chrono::microseconds>(end - start).count();
 
         print_iteration_table(sptSet.size(), distance);
     }
-
+    cout << "Time taken: " << calc_time << " ms\n";
     print_lsrp_routing_table(src_node, predecessor, distance);
 
 }
@@ -279,7 +283,8 @@ void Network::dvrp_route(int src_node)
         distance[*itr] = INT16_MAX;
 
     distance[src_node] = 0;
-
+    auto start = chrono::high_resolution_clock::now();
+    
     for (std::set<int, std::less<int>>::size_type i = 1; i < nodes.size(); i++)
     {
         for (auto itr = topology.begin(); itr != topology.end(); itr++)
@@ -297,6 +302,8 @@ void Network::dvrp_route(int src_node)
             }
         }
     }
+    auto end = chrono::high_resolution_clock::now();
+    cout << "Time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << " ms\n";
 
     print_dvrp_routing_table(src_node, predecessor, distance);
 }
@@ -327,7 +334,7 @@ void Network::handle_command(std::string cmd)
         auto start = chrono::high_resolution_clock::now();
         lsrp_route(src_node);
         auto end = chrono::high_resolution_clock::now();
-        cout << "Time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
+        cout << "Total time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
     }
     else if (command == DVRP)
     {
@@ -336,7 +343,7 @@ void Network::handle_command(std::string cmd)
         auto start = chrono::high_resolution_clock::now();
         dvrp_route(src_node);
         auto end = chrono::high_resolution_clock::now();
-        cout << "Time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
+        cout << "Total time taken: " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
     }
     else if (command == MODIFY)
     {
